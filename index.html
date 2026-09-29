@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#fffdf8" />
+  <title>よみフラッシュ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#fffdf8;
+      --panel:#ffffff;
+      --ink:#263238;
+      --sub:#65727a;
+      --accent:#ff9f43;
+      --accent2:#ffd166;
+      --ok:#23b26d;
+      --danger:#e85d5d;
+      --line:#dde5e8;
+      --shadow:0 8px 24px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      width:100%;
+      height:100%;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:"UD Digi Kyokasho N-R","UD Digi Kyokasho NK-R","UDデジタル教科書体 N-R","Klee One","BIZ UDPGothic","Yu Gothic","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
+      overflow:hidden;
+      touch-action:manipulation;
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{
+      width:min(1180px,100vw);
+      height:100dvh;
+      margin:0 auto;
+      padding:12px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      min-height:52px;
+      gap:10px;
+    }
+    .brand{
+      font-weight:900;
+      font-size:clamp(24px,3vw,38px);
+      letter-spacing:.05em;
+    }
+    .small-btn{
+      border:2px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:12px;
+      padding:8px 14px;
+      font-weight:800;
+    }
+    .screen{
+      flex:1;
+      min-height:0;
+      display:none;
+    }
+    .screen.active{display:flex}
+    .panel{
+      width:100%;
+      height:100%;
+      background:var(--panel);
+      border:2px solid var(--line);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:18px;
+      overflow:auto;
+    }
+    h1,h2,h3,p{margin-top:0}
+    h2{font-size:clamp(20px,2.2vw,30px); margin-bottom:10px}
+    .section{
+      margin-bottom:16px;
+      padding-bottom:14px;
+      border-bottom:1px solid var(--line);
+    }
+    .section:last-child{border-bottom:none}
+    .choice-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+      gap:8px;
+    }
+    .choice input{display:none}
+    .choice label{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:48px;
+      padding:8px 10px;
+      text-align:center;
+      background:#fff;
+      border:2px solid var(--line);
+      border-radius:14px;
+      font-weight:900;
+      user-select:none;
+    }
+    .choice input:checked + label{
+      border-color:var(--accent);
+      background:#fff4e6;
+      box-shadow:inset 0 0 0 2px #ffe0b4;
+    }
+    .mode-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .mode-card{
+      border:2px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .mode-card.active{
+      border-color:var(--accent);
+      background:#fff8ef;
+    }
+    .mode-title{font-weight:900;font-size:18px;margin-bottom:8px}
+    .inline-options{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .pill{
+      border:2px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:999px;
+      padding:8px 13px;
+      font-weight:800;
+    }
+    .pill.selected{
+      background:#fff1dc;
+      border-color:var(--accent);
+    }
+    .goal-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      align-items:end;
+    }
+    .goal-row label{
+      display:block;
+      font-size:13px;
+      color:var(--sub);
+      font-weight:800;
+      margin-bottom:4px;
+    }
+    .goal-row input{
+      width:100%;
+      border:2px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:900;
+      font-size:18px;
+    }
+    .primary{
+      width:100%;
+      min-height:56px;
+      border:0;
+      background:var(--accent);
+      color:#fff;
+      border-radius:16px;
+      font-size:clamp(20px,2.5vw,28px);
+      font-weight:900;
+      box-shadow:0 6px 0 #d9822d;
+    }
+    .primary:active{transform:translateY(3px);box-shadow:0 3px 0 #d9822d}
+    .setup-note{
+      color:var(--sub);
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    /* countdown */
+    #countdownScreen{
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+    }
+    .count-num{
+      font-size:min(42vw,260px);
+      font-weight:1000;
+      line-height:1;
+      animation:pop .65s ease;
+    }
+    @keyframes pop{
+      0%{transform:scale(.6);opacity:.2}
+      60%{transform:scale(1.1);opacity:1}
+      100%{transform:scale(1)}
+    }
+
+    /* game */
+    #gameScreen{flex-direction:column}
+    .game-panel{
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .hud{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+      flex:0 0 auto;
+    }
+    .hud-box{
+      background:#fff;
+      border:2px solid var(--line);
+      border-radius:14px;
+      min-height:58px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:6px;
+    }
+    .hud-label{font-size:12px;color:var(--sub);font-weight:800}
+    .hud-value{font-size:clamp(18px,2.5vw,30px);font-weight:1000}
+    .flash-card{
+      flex:1 1 auto;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:3px solid #eceff1;
+      background:#fff;
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:10px;
+      overflow:hidden;
+    }
+    .flash-text{
+      font-family:"Klee One","UD Digi Kyokasho N-R","UD Digi Kyokasho NK-R","UDデジタル教科書体 N-R","BIZ UDPGothic","Yu Gothic",sans-serif;
+      font-weight:600;
+      text-align:center;
+      line-height:1.08;
+      letter-spacing:.05em;
+      font-size:clamp(72px,18vh,190px);
+      word-break:keep-all;
+      white-space:nowrap;
+      max-width:100%;
+    }
+    .game-actions{
+      display:grid;
+      grid-template-columns:1fr 2.2fr;
+      gap:10px;
+      flex:0 0 auto;
+    }
+    .secondary{
+      min-height:64px;
+      border:2px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:16px;
+      font-size:18px;
+      font-weight:900;
+    }
+    .next{
+      min-height:64px;
+      border:0;
+      background:var(--ok);
+      color:#fff;
+      border-radius:16px;
+      font-size:clamp(24px,3vw,34px);
+      font-weight:1000;
+      box-shadow:0 6px 0 #17834e;
+    }
+    .next:active{transform:translateY(3px);box-shadow:0 3px 0 #17834e}
+
+    /* result */
+    .result-wrap{
+      width:100%;
+      height:100%;
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:14px;
+    }
+    .result-main,.rank-panel{
+      background:#fff;
+      border:2px solid var(--line);
+      border-radius:20px;
+      padding:18px;
+      overflow:auto;
+    }
+    .title-badge{
+      display:inline-block;
+      border-radius:999px;
+      background:#fff0c2;
+      border:2px solid #f4c34e;
+      padding:8px 14px;
+      font-weight:1000;
+      font-size:clamp(20px,2.3vw,30px);
+      margin-bottom:10px;
+    }
+    .big-score{
+      font-size:clamp(44px,7vw,84px);
+      font-weight:1000;
+      margin:4px 0;
+    }
+    .result-meta{
+      color:var(--sub);
+      font-weight:800;
+      margin-bottom:10px;
+    }
+    .goal-result{
+      border-radius:14px;
+      padding:12px;
+      font-weight:900;
+      margin-bottom:12px;
+    }
+    .goal-ok{background:#e7f8ef;color:#15663f}
+    .goal-ng{background:#fff3e7;color:#8b541f}
+    .result-buttons{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .rank-list{display:flex;flex-direction:column;gap:6px}
+    .rank-row{
+      display:grid;
+      grid-template-columns:42px 1fr auto;
+      align-items:center;
+      gap:8px;
+      border-bottom:1px solid var(--line);
+      padding:8px 4px;
+    }
+    .rank-pos{
+      width:34px;height:34px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      background:#f5f7f8;font-weight:1000;
+    }
+    .rank-score{font-weight:1000}
+    .rank-date{font-size:11px;color:var(--sub)}
+    .danger-btn{
+      margin-top:10px;
+      border:2px solid #ffc5c5;
+      background:#fff7f7;
+      color:#b64040;
+      border-radius:12px;
+      padding:8px 12px;
+      font-weight:900;
+      width:100%;
+    }
+
+    .flash-text.vertical{
+      writing-mode:vertical-rl;
+      text-orientation:upright;
+      white-space:nowrap;
+      letter-spacing:.08em;
+      line-height:1.15;
+    }
+    #gameScreen.vertical-game .game-panel{
+      max-width:760px;
+      margin:0 auto;
+    }
+    #gameScreen.vertical-game .flash-card{
+      min-height:0;
+    }
+
+    .hidden{display:none!important}
+
+    @media (max-width:760px){
+      .app{padding:8px}
+      .panel{padding:12px}
+      .mode-row,.goal-row,.result-wrap{grid-template-columns:1fr}
+      .hud{grid-template-columns:repeat(4,1fr);gap:5px}
+      .hud-box{min-height:50px}
+      .hud-value{font-size:17px}
+      .flash-text{font-size:clamp(58px,16vh,150px)}
+      .result-wrap{overflow:auto}
+      .result-main,.rank-panel{overflow:visible}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">よみフラッシュ</div>
+      <button class="small-btn" id="homeBtn">設定にもどる</button>
+    </div>
+
+    <section id="setupScreen" class="screen active">
+      <div class="panel">
+        <div class="section">
+          <h2>① よむものを えらぶ</h2>
+          <div class="choice-grid" id="categoryGrid"></div>
+          <p class="setup-note" style="margin-top:8px">複数選択できます。問題は選んだ種類の中からランダムに出ます。表示文字はUDデジタル教科書体を優先します。</p>
+        </div>
+
+        <div class="section">
+          <h2>② 文字の向き</h2>
+          <div class="inline-options" id="directionOptions">
+            <button type="button" class="pill selected" data-dir="horizontal">横書き</button>
+            <button type="button" class="pill" data-dir="vertical">縦書き</button>
+          </div>
+          
+        </div>
+
+        <div class="section">
+          <h2>③ チャレンジ方法</h2>
+          <div class="mode-row">
+            <div class="mode-card active" id="questionModeCard">
+              <div class="mode-title">問題数をきめる</div>
+              <div class="inline-options" id="questionOptions"></div>
+            </div>
+            <div class="mode-card" id="timeModeCard">
+              <div class="mode-title">時間をきめる</div>
+              <div class="inline-options" id="timeOptions"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>④ よみの長さ</h2>
+          <div class="inline-options" id="wordModeOptions" style="margin-bottom:10px">
+            <button type="button" class="pill" data-mode="single">単音（1文字）</button>
+            <button type="button" class="pill selected" data-mode="word">単語</button>
+          </div>
+          <div class="inline-options" id="lengthOptions"></div>
+          <p class="setup-note" id="lengthHelp" style="margin-top:8px">
+            単語は「3文字まで」のように、最大文字数を選びます。
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>⑤ じぶんの目標</h2>
+          <div class="goal-row">
+            <div>
+              <label id="goalLabel">目標タイム（秒）</label>
+              <input type="number" id="goalInput" min="1" value="30">
+            </div>
+            <div class="setup-note" id="goalHelp">
+              問題数モードでは、「何秒以内に全部読めるか」を目標にします。
+            </div>
+          </div>
+        </div>
+<button class="primary" id="startBtn">スタート</button>
+      </div>
+    </section>
+<section id="countdownScreen" class="screen">
+      <div class="count-num" id="countNum">3</div>
+      <div style="font-weight:900;font-size:24px;margin-top:14px">こえに出して よもう！</div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <div class="game-panel">
+        <div class="hud">
+          <div class="hud-box">
+            <div class="hud-label">もんだい</div>
+            <div class="hud-value" id="hudCount">1 / 10</div>
+          </div>
+          <div class="hud-box">
+            <div class="hud-label">よめた数</div>
+            <div class="hud-value" id="hudRead">0</div>
+          </div>
+          <div class="hud-box">
+            <div class="hud-label">タイム</div>
+            <div class="hud-value" id="hudTime">0.0秒</div>
+          </div>
+          <div class="hud-box">
+            <div class="hud-label">種類</div>
+            <div class="hud-value" id="hudCategory" style="font-size:15px">清音</div>
+          </div>
+        </div>
+
+        <div class="flash-card">
+          <div class="flash-text" id="flashText">あ</div>
+        </div>
+
+        <div class="game-actions">
+          <button class="secondary" id="skipBtn">とばす</button>
+          <button class="next" id="nextBtn">読めた！　次へ</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="resultScreen" class="screen">
+      <div class="result-wrap">
+        <div class="result-main">
+          <h2>チャレンジ結果</h2>
+          <div class="title-badge" id="titleBadge">よみチャレンジャー</div>
+          <div class="big-score" id="resultScore">10問</div>
+          <div class="result-meta" id="resultMeta">20.4秒</div>
+          <div class="goal-result goal-ok" id="goalResult">目標クリア！</div>
+          <div id="resultDetail" class="setup-note"></div>
+
+          <div class="result-buttons" style="margin-top:16px">
+            <button class="secondary" id="retryBtn">同じ設定でもう一度</button>
+            <button class="primary" id="setupBtn" style="min-height:52px;font-size:20px">設定をかえる</button>
+          </div>
+        </div>
+
+        <div class="rank-panel">
+          <h2>ランキング</h2>
+          <div class="setup-note" id="rankLabel">同じモード・同じ設定の記録</div>
+          <div class="rank-list" id="rankList"></div>
+          <button class="danger-btn" id="clearRankBtn">ランキングを消す</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script src="dictionary.js"></script>
+<script>
+const DATA = window.YOMI_DICTIONARY;
+if(!DATA){
+  document.body.innerHTML = '<div style="font-family:sans-serif;padding:24px"><h2>辞書ファイルを読み込めませんでした</h2><p>index.html と dictionary.js を同じフォルダに置いてください。</p></div>';
+  throw new Error("dictionary.js not loaded");
+}
+
+const categoryOrder = ["seion","dakuon","handakuon","sokuon","chouon","youon","katakana","kanji1","kanji2"];
+
+
+const questionChoices = [5,10,15,20,30,40,50,60,70,80,90,100];
+const timeChoices = [
+  {sec:30,label:"30秒"},{sec:60,label:"1分"},{sec:90,label:"1分30秒"},
+  {sec:120,label:"2分"},{sec:150,label:"2分30秒"},{sec:180,label:"3分"}
+];
+const lengthChoices = [2,3,4,5];
+
+let mode = "questions";
+let questionTarget = 10;
+let timeTarget = 60;
+let maxLength = 3;
+let wordMode = "word";
+let writingDirection = "horizontal";
+let selectedCategories = ["seion"];
+let pool = [];
+let sequence = [];
+let currentIndex = 0;
+let readCount = 0;
+let skipped = 0;
+let startTime = 0;
+let timerId = null;
+let ended = false;
+let lastSetup = null;
+
+const $ = s => document.querySelector(s);
+const screens = ["setupScreen","countdownScreen","gameScreen","resultScreen"];
+
+function showScreen(id){
+  screens.forEach(s=>$("#"+s).classList.toggle("active",s===id));
+  $("#homeBtn").style.visibility = (id==="setupScreen" || id==="countdownScreen") ? "hidden":"visible";
+}
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function buildSetup(){
+  const grid=$("#categoryGrid");
+  categoryOrder.forEach((key,idx)=>{
+    const wrap=document.createElement("div");
+    wrap.className="choice";
+    wrap.innerHTML=`<input type="checkbox" id="cat_${key}" value="${key}" ${idx===0?"checked":""}>
+                    <label for="cat_${key}">${DATA[key].label}</label>`;
+    grid.appendChild(wrap);
+  });
+
+  const qo=$("#questionOptions");
+  questionChoices.forEach(n=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="pill"+(n===10?" selected":"");
+    b.textContent=n+"問";
+    b.dataset.value=n;
+    b.onclick=()=>{questionTarget=n; [...qo.children].forEach(x=>x.classList.remove("selected")); b.classList.add("selected");};
+    qo.appendChild(b);
+  });
+
+  const to=$("#timeOptions");
+  timeChoices.forEach((t,i)=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="pill"+(t.sec===60?" selected":"");
+    b.textContent=t.label;
+    b.dataset.value=t.sec;
+    b.onclick=()=>{timeTarget=t.sec; [...to.children].forEach(x=>x.classList.remove("selected")); b.classList.add("selected");};
+    to.appendChild(b);
+  });
+
+  const lo=$("#lengthOptions");
+
+  function refreshLengthUI(){
+    [...$("#wordModeOptions").children].forEach(b=>{
+      b.classList.toggle("selected", b.dataset.mode===wordMode);
+    });
+
+    [...lo.children].forEach(b=>{
+      const n=Number(b.dataset.value);
+      b.classList.toggle("selected", wordMode==="word" && n===maxLength);
+      b.disabled = wordMode==="single";
+      b.style.opacity = wordMode==="single" ? ".45" : "1";
+      b.textContent = n+"文字まで";
+    });
+
+    $("#lengthHelp").textContent = wordMode==="single"
+      ? "単音では、ひらがな・カタカナ・漢字などを1文字ずつ出します。"
+      : `単語では、2〜${maxLength}文字までのことばが出ます。`;
+  }
+
+  lengthChoices.forEach(n=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="pill"+(n===3?" selected":"");
+    b.dataset.value=n;
+    b.textContent=n+"文字まで";
+    b.onclick=()=>{
+      if(wordMode!=="word") return;
+      maxLength=n;
+      refreshLengthUI();
+    };
+    lo.appendChild(b);
+  });
+
+  $("#wordModeOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-mode]");
+    if(!btn) return;
+    wordMode=btn.dataset.mode;
+    refreshLengthUI();
+  };
+  refreshLengthUI();
+
+  $("#directionOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-dir]");
+    if(!btn) return;
+    writingDirection=btn.dataset.dir;
+    [...$("#directionOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
+  };
+
+  $("#questionModeCard").onclick=e=>{
+    if(e.target.closest(".pill")) return;
+    setMode("questions");
+  };
+  $("#timeModeCard").onclick=e=>{
+    if(e.target.closest(".pill")) return;
+    setMode("time");
+  };
+  qo.onclick=()=>setMode("questions");
+  to.onclick=()=>setMode("time");
+}
+function setMode(m){
+  mode=m;
+  $("#questionModeCard").classList.toggle("active",m==="questions");
+  $("#timeModeCard").classList.toggle("active",m==="time");
+  if(m==="questions"){
+    $("#goalLabel").textContent="目標タイム（秒）";
+    $("#goalInput").value = $("#goalInput").dataset.qgoal || "30";
+    $("#goalHelp").textContent="問題数モードでは、「何秒以内に全部読めるか」を目標にします。";
+  }else{
+    $("#goalInput").dataset.qgoal=$("#goalInput").value;
+    $("#goalLabel").textContent="目標問題数（問）";
+    $("#goalInput").value = $("#goalInput").dataset.tgoal || "20";
+    $("#goalHelp").textContent="時間モードでは、「制限時間内に何問読めるか」を目標にします。";
+  }
+}
+function getSelectedCategories(){
+  return categoryOrder.filter(k=>$("#cat_"+k).checked);
+}
+function charCount(str){
+  return Array.from(str).length;
+}
+function createPool(cats){
+  let p=[];
+  cats.forEach(k=>DATA[k].items.forEach(item=>{
+    const len=charCount(item);
+    const ok = wordMode==="single"
+      ? len===1
+      : (len>=2 && len<=maxLength);
+    if(ok){
+      p.push({text:item,cat:k});
+    }
+  }));
+  return p;
+}
+function makeSequence(p, needed){
+  let out=[];
+  if(!p.length) return out;
+  while(out.length<needed){
+    out.push(...shuffle(p));
+  }
+  return out.slice(0,needed);
+}
+function startFromSetup(){
+  selectedCategories=getSelectedCategories();
+  if(selectedCategories.length===0){
+    alert("読むものを1つ以上えらんでください。");
+    return;
+  }
+  const goal=Math.max(1,Number($("#goalInput").value)||1);
+  if(mode==="time") $("#goalInput").dataset.tgoal=goal;
+  else $("#goalInput").dataset.qgoal=goal;
+
+  lastSetup={mode,questionTarget,timeTarget,maxLength,wordMode,writingDirection,selectedCategories:[...selectedCategories],goal};
+
+  pool=createPool(selectedCategories);
+  if(pool.length===0){
+    alert("この設定では出せる問題がありません。単音／単語、文字数、読むものを変更してください。");
+    return;
+  }
+  const needed = mode==="questions" ? questionTarget : Math.max(200,pool.length*3);
+  sequence=makeSequence(pool,needed);
+
+  currentIndex=0; readCount=0; skipped=0; ended=false;
+  doCountdown();
+}
+function doCountdown(){
+  clearInterval(timerId);
+  showScreen("countdownScreen");
+  let n=3;
+  const el=$("#countNum");
+  el.textContent=n;
+  el.style.animation="none"; void el.offsetWidth; el.style.animation="";
+  const cd=setInterval(()=>{
+    n--;
+    if(n>0){
+      el.textContent=n;
+      el.style.animation="none"; void el.offsetWidth; el.style.animation="";
+    }else if(n===0){
+      el.textContent="GO!";
+      el.style.animation="none"; void el.offsetWidth; el.style.animation="";
+    }else{
+      clearInterval(cd);
+      beginGame();
+    }
+  },700);
+}
+function beginGame(){
+  showScreen("gameScreen");
+  startTime=performance.now();
+  renderCard();
+  timerId=setInterval(updateTimer,50);
+}
+function elapsedSec(){
+  return (performance.now()-startTime)/1000;
+}
+function updateTimer(){
+  if(ended) return;
+  const e=elapsedSec();
+  if(mode==="questions"){
+    $("#hudTime").textContent=e.toFixed(1)+"秒";
+  }else{
+    const left=Math.max(0,timeTarget-e);
+    $("#hudTime").textContent=left.toFixed(1)+"秒";
+    if(left<=0) endGame();
+  }
+}
+function renderCard(){
+  if(ended) return;
+  if(currentIndex>=sequence.length){
+    sequence.push(...shuffle(pool));
+  }
+  if(mode==="questions" && currentIndex>=questionTarget){
+    endGame(); return;
+  }
+  const card=sequence[currentIndex];
+  $("#flashText").textContent=card.text;
+  $("#flashText").classList.toggle("vertical", writingDirection==="vertical");
+  $("#gameScreen").classList.toggle("vertical-game", writingDirection==="vertical");
+  $("#hudCategory").textContent=DATA[card.cat].label;
+  $("#hudRead").textContent=readCount;
+  if(mode==="questions"){
+    $("#hudCount").textContent=(currentIndex+1)+" / "+questionTarget;
+  }else{
+    $("#hudCount").textContent=(currentIndex+1)+"問目";
+  }
+  fitFlashText();
+}
+function fitFlashText(){
+  const text=$("#flashText");
+  const box=text.parentElement;
+  let size;
+  if(writingDirection==="vertical"){
+    size=Math.min(box.clientWidth*0.42, 170);
+  }else{
+    size=Math.min(box.clientHeight*0.62, 190);
+  }
+  size=Math.max(48,size);
+  text.style.fontSize=size+"px";
+  while((text.scrollWidth > box.clientWidth-30 || text.scrollHeight > box.clientHeight-25) && size>38){
+    size-=4;
+    text.style.fontSize=size+"px";
+  }
+}
+function nextCard(read){
+  if(ended) return;
+  if(read) readCount++; else skipped++;
+  currentIndex++;
+  if(mode==="questions" && currentIndex>=questionTarget){
+    endGame();
+  }else{
+    renderCard();
+  }
+}
+function titleFor(result){
+  let ratio=result.goalRatio;
+  if(ratio>=1.6) return "よみの神さま";
+  if(ratio>=1.3) return "フラッシュマスター";
+  if(ratio>=1.1) return "よみ名人";
+  if(ratio>=1.0) return "目標クリアスター";
+  if(ratio>=0.8) return "あと一歩チャレンジャー";
+  return "よみチャレンジャー";
+}
+function rankKey(setup){
+  const cats=[...setup.selectedCategories].sort().join("-");
+  const base = setup.mode==="questions" ? `q_${setup.questionTarget}` : `t_${setup.timeTarget}`;
+  return `yomiFlashRank_v6_${base}_${setup.wordMode}_len${setup.maxLength}_${setup.writingDirection}_${cats}`;
+}
+function endGame(){
+  if(ended) return;
+  ended=true;
+  clearInterval(timerId);
+  const e=Math.min(elapsedSec(), mode==="time" ? timeTarget : 99999);
+
+  let goalMet, goalRatio, scoreText, metaText, primaryScore;
+  if(mode==="questions"){
+    goalMet=e<=lastSetup.goal;
+    goalRatio=lastSetup.goal/e;
+    scoreText=`${readCount}問`;
+    metaText=`${questionTarget}問中 ${readCount}問読めた ／ ${e.toFixed(1)}秒 ／ とばした問題 ${skipped}問`;
+    primaryScore = e;
+  }else{
+    goalMet=readCount>=lastSetup.goal;
+    goalRatio=readCount/lastSetup.goal;
+    scoreText=`${readCount}問`;
+    metaText=`${formatTime(timeTarget)}で ${readCount}問読めた ／ とばした問題 ${skipped}問`;
+    primaryScore = readCount;
+  }
+
+  const result={mode,readCount,skipped,elapsed:e,goalMet,goalRatio,primaryScore,date:new Date().toISOString(),setup:lastSetup};
+  saveRank(result);
+  showResult(result);
+}
+function formatTime(sec){
+  if(sec<60) return sec+"秒";
+  const m=Math.floor(sec/60), s=sec%60;
+  return s?`${m}分${s}秒`:`${m}分`;
+}
+function showResult(result){
+  showScreen("resultScreen");
+  $("#titleBadge").textContent=titleFor(result);
+  $("#resultScore").textContent=result.mode==="questions" ? `${result.readCount}問 読めた！` : `${result.readCount}問 読めた！`;
+  $("#resultMeta").textContent=result.mode==="questions"
+    ? `${result.setup.questionTarget}問チャレンジ ／ ${result.elapsed.toFixed(1)}秒`
+    : `${formatTime(result.setup.timeTarget)}チャレンジ`;
+
+  const g=$("#goalResult");
+  g.className="goal-result "+(result.goalMet?"goal-ok":"goal-ng");
+  if(result.goalMet){
+    g.textContent="目標クリア！　称号ゲット！";
+  }else{
+    if(result.mode==="questions"){
+      g.textContent=`目標 ${result.setup.goal}秒まで、あと ${Math.max(0,result.elapsed-result.setup.goal).toFixed(1)}秒！`;
+    }else{
+      g.textContent=`目標 ${result.setup.goal}問まで、あと ${Math.max(0,result.setup.goal-result.readCount)}問！`;
+    }
+  }
+
+  const cats=result.setup.selectedCategories.map(k=>DATA[k].label).join("・");
+  $("#resultDetail").innerHTML=`読むもの：${cats}<br>長さ：${result.setup.wordMode==="single" ? "単音（1文字）" : result.setup.maxLength+"文字までの単語"}<br>文字の向き：${result.setup.writingDirection==="vertical" ? "縦書き" : "横書き"}<br>とばした問題：${result.skipped}問`;
+  renderRanking(result.setup);
+}
+function saveRank(result){
+  const key=rankKey(result.setup);
+  let arr=[];
+  try{arr=JSON.parse(localStorage.getItem(key)||"[]")}catch(e){}
+  arr.push({
+    mode:result.mode,
+    readCount:result.readCount,
+    skipped:result.skipped,
+    elapsed:result.elapsed,
+    primaryScore:result.primaryScore,
+    date:result.date
+  });
+  if(result.mode==="questions"){
+    arr.sort((a,b)=>a.elapsed-b.elapsed || b.readCount-a.readCount);
+  }else{
+    arr.sort((a,b)=>b.readCount-a.readCount || a.skipped-b.skipped);
+  }
+  localStorage.setItem(key,JSON.stringify(arr.slice(0,20)));
+}
+function renderRanking(setup){
+  const key=rankKey(setup);
+  let arr=[];
+  try{arr=JSON.parse(localStorage.getItem(key)||"[]")}catch(e){}
+  const list=$("#rankList");
+  list.innerHTML="";
+  $("#rankLabel").textContent = setup.mode==="questions"
+    ? `${setup.questionTarget}問・${setup.wordMode==="single" ? "単音" : setup.maxLength+"文字まで"}・${setup.writingDirection==="vertical" ? "縦" : "横"}・${setup.selectedCategories.map(k=>DATA[k].label).join("＋")}`
+    : `${formatTime(setup.timeTarget)}・${setup.wordMode==="single" ? "単音" : setup.maxLength+"文字まで"}・${setup.writingDirection==="vertical" ? "縦" : "横"}・${setup.selectedCategories.map(k=>DATA[k].label).join("＋")}`;
+
+  if(!arr.length){
+    list.innerHTML='<div class="setup-note">まだ記録がありません。</div>';
+    return;
+  }
+  arr.slice(0,10).forEach((r,i)=>{
+    const d=new Date(r.date);
+    const ds=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const score=setup.mode==="questions"
+      ? `${r.elapsed.toFixed(1)}秒`
+      : `${r.readCount}問`;
+    const row=document.createElement("div");
+    row.className="rank-row";
+    row.innerHTML=`<div class="rank-pos">${i+1}</div>
+                   <div><div class="rank-score">${score}</div><div class="rank-date">${ds}</div></div>
+                   <div class="rank-date">${r.skipped?`とばし ${r.skipped}`:""}</div>`;
+    list.appendChild(row);
+  });
+}
+function restoreSetup(setup){
+  if(!setup) return;
+  mode=setup.mode; questionTarget=setup.questionTarget; timeTarget=setup.timeTarget; maxLength=setup.maxLength || 3; wordMode=setup.wordMode || "word"; writingDirection=setup.writingDirection || "horizontal";
+  setMode(mode);
+  categoryOrder.forEach(k=>$("#cat_"+k).checked=setup.selectedCategories.includes(k));
+  [...$("#questionOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===questionTarget));
+  [...$("#timeOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===timeTarget));
+  [...$("#wordModeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.mode===wordMode));
+  [...$("#lengthOptions").children].forEach(b=>{
+    const n=Number(b.dataset.value);
+    b.classList.toggle("selected",wordMode==="word" && n===maxLength);
+    b.disabled = wordMode==="single";
+    b.style.opacity = wordMode==="single" ? ".45" : "1";
+    b.textContent = n+"文字まで";
+  });
+  $("#lengthHelp").textContent = wordMode==="single"
+    ? "単音では、ひらがな・カタカナ・漢字などを1文字ずつ出します。"
+    : `単語では、2〜${maxLength}文字までのことばが出ます。`;
+  [...$("#directionOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.dir===writingDirection));
+  $("#goalInput").value=setup.goal;
+}
+function goSetup(){
+  clearInterval(timerId); ended=true;
+  showScreen("setupScreen");
+}
+function retry(){
+  if(!lastSetup) return;
+  restoreSetup(lastSetup);
+  startFromSetup();
+}
+
+buildSetup();
+
+$("#startBtn").onclick=startFromSetup;
+$("#nextBtn").onclick=()=>nextCard(true);
+$("#skipBtn").onclick=()=>nextCard(false);
+$("#homeBtn").onclick=goSetup;
+$("#retryBtn").onclick=retry;
+$("#setupBtn").onclick=goSetup;
+$("#clearRankBtn").onclick=()=>{
+  if(!lastSetup) return;
+  if(confirm("この設定のランキングを消しますか？")){
+    localStorage.removeItem(rankKey(lastSetup));
+    renderRanking(lastSetup);
+  }
+};
+window.addEventListener("resize",()=>{ if($("#gameScreen").classList.contains("active")) fitFlashText(); });
+document.addEventListener("keydown",e=>{
+  if(!$("#gameScreen").classList.contains("active")) return;
+  if(e.code==="Space" || e.code==="Enter"){
+    e.preventDefault(); nextCard(true);
+  }
+});
+</script>
+</body>
+</html>

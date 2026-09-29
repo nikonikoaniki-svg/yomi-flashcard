@@ -1,0 +1,89 @@
+# よみフラッシュ
+
+読みの練習用WEBゲームです。
+
+## 主な機能
+
+- 清音
+- 濁音
+- 半濁音
+- 促音
+- 長音
+- 拗音
+- カタカナ
+- 漢字1年
+- 漢字2年
+- 単音／単語
+- 単語は最大5文字まで
+- 問題数モード
+- 時間モード
+- ランダム出題
+- 横書き／縦書き
+- UDデジタル教科書体を優先表示
+- 目標設定
+- 称号
+- ランキング保存
+
+## ファイル構成
+
+```text
+/
+├─ index.html
+├─ dictionary.js
+├─ README.md
+├─ .gitignore
+└─ data/
+   ├─ dictionary.csv
+   └─ dictionary_master.xlsx
+```
+
+## GitHubへのアップロード
+
+1. GitHubで新しいリポジトリを作成します。
+2. このZIPを展開します。
+3. 中にあるファイルと `data` フォルダをすべてアップロードします。
+4. Commit changes を押します。
+
+## GitHub Pagesで公開
+
+1. リポジトリの `Settings` を開きます。
+2. 左側の `Pages` を選びます。
+3. `Build and deployment` の Source を `Deploy from a branch` にします。
+4. Branch を `main`、フォルダを `/ (root)` にします。
+5. `Save` を押します。
+6. 公開URLが表示されたら、そのURLからゲームを開けます。
+
+## 辞書の管理
+
+WEBゲームが実際に読む辞書は `dictionary.js` です。
+
+語彙を追加・整理するときは、基本的に
+
+`data/dictionary_master.xlsx`
+
+を編集して管理します。
+
+`data/dictionary.csv` はGitHub上でも確認しやすい一覧です。
+
+現在の辞書は漢字2年生までを対象にしています。
+
+## 注意
+
+`index.html` と `dictionary.js` は必ず同じフォルダに置いてください。
+
+ランキングは各端末のブラウザ内に保存されます。
+辞書データ自体はブラウザには保存されません。
+
+## 表示フォント
+
+読みカードの文字は Webフォントの `Klee One` を最優先で使用します。
+Chromebook側に教科書体フォントが入っていなくても、インターネット接続時は同じフォントで表示されます。
+
+フォント読み込み先:
+Google Fonts
+
+フォント:
+Klee One
+
+オフライン時やGoogle Fontsへ接続できない環境では、
+端末に入っているUDデジタル教科書体 → BIZ UDPGothic → Yu Gothic の順に切り替わります。
