@@ -390,7 +390,7 @@
   <div class="app">
     <div class="topbar">
       <div class="brand">よみフラッシュ</div>
-      <button class="small-btn" id="homeBtn">設定にもどる</button>
+      <button class="small-btn" id="homeBtn" style="visibility:hidden">設定にもどる</button>
     </div>
 
     <section id="setupScreen" class="screen active">
@@ -549,6 +549,11 @@ let timerId = null;
 let ended = false;
 let lastSetup = null;
 
+// ゲーム開始時に固定する設定
+let gameMode = "questions";
+let gameQuestionTarget = 10;
+let gameTimeTarget = 60;
+
 const $ = s => document.querySelector(s);
 const screens = ["setupScreen","countdownScreen","gameScreen","resultScreen"];
 
@@ -580,7 +585,13 @@ function buildSetup(){
     b.type="button"; b.className="pill"+(n===10?" selected":"");
     b.textContent=n+"問";
     b.dataset.value=n;
-    b.onclick=()=>{questionTarget=n; [...qo.children].forEach(x=>x.classList.remove("selected")); b.classList.add("selected");};
+    b.onclick=(e)=>{
+      e.stopPropagation();
+      setMode("questions");
+      questionTarget=n;
+      [...qo.children].forEach(x=>x.classList.remove("selected"));
+      b.classList.add("selected");
+    };
     qo.appendChild(b);
   });
 
@@ -590,7 +601,13 @@ function buildSetup(){
     b.type="button"; b.className="pill"+(t.sec===60?" selected":"");
     b.textContent=t.label;
     b.dataset.value=t.sec;
-    b.onclick=()=>{timeTarget=t.sec; [...to.children].forEach(x=>x.classList.remove("selected")); b.classList.add("selected");};
+    b.onclick=(e)=>{
+      e.stopPropagation();
+      setMode("time");
+      timeTarget=t.sec;
+      [...to.children].forEach(x=>x.classList.remove("selected"));
+      b.classList.add("selected");
+    };
     to.appendChild(b);
   });
 
@@ -706,14 +723,28 @@ function startFromSetup(){
   if(mode==="time") $("#goalInput").dataset.tgoal=goal;
   else $("#goalInput").dataset.qgoal=goal;
 
-  lastSetup={mode,questionTarget,timeTarget,maxLength,wordMode,writingDirection,selectedCategories:[...selectedCategories],goal};
+  // このチャレンジ中は設定を固定する
+  gameMode = mode;
+  gameQuestionTarget = questionTarget;
+  gameTimeTarget = timeTarget;
+
+  lastSetup={
+    mode:gameMode,
+    questionTarget:gameQuestionTarget,
+    timeTarget:gameTimeTarget,
+    maxLength,
+    wordMode,
+    writingDirection,
+    selectedCategories:[...selectedCategories],
+    goal
+  };
 
   pool=createPool(selectedCategories);
   if(pool.length===0){
     alert("この設定では出せる問題がありません。単音／単語、文字数、読むものを変更してください。");
     return;
   }
-  const needed = mode==="questions" ? questionTarget : Math.max(200,pool.length*3);
+  const needed = gameMode==="questions" ? gameQuestionTarget : Math.max(200,pool.length*3);
   sequence=makeSequence(pool,needed);
 
   currentIndex=0; readCount=0; skipped=0; ended=false;
@@ -752,21 +783,29 @@ function elapsedSec(){
 function updateTimer(){
   if(ended) return;
   const e=elapsedSec();
-  if(mode==="questions"){
+  if(gameMode==="questions"){
     $("#hudTime").textContent=e.toFixed(1)+"秒";
   }else{
-    const left=Math.max(0,timeTarget-e);
+    const left=Math.max(0,gameTimeTarget-e);
     $("#hudTime").textContent=left.toFixed(1)+"秒";
     if(left<=0) endGame();
   }
 }
 function renderCard(){
   if(ended) return;
-  if(currentIndex>=sequence.length){
-    sequence.push(...shuffle(pool));
+
+  // 問題数モードでは、設定数に達したら絶対に次を表示しない
+  if(gameMode==="questions" && currentIndex>=gameQuestionTarget){
+    endGame();
+    return;
   }
-  if(mode==="questions" && currentIndex>=questionTarget){
-    endGame(); return;
+
+  if(currentIndex>=sequence.length){
+    if(gameMode==="questions"){
+      endGame();
+      return;
+    }
+    sequence.push(...shuffle(pool));
   }
   const card=sequence[currentIndex];
   $("#flashText").textContent=card.text;
@@ -774,8 +813,8 @@ function renderCard(){
   $("#gameScreen").classList.toggle("vertical-game", writingDirection==="vertical");
   $("#hudCategory").textContent=DATA[card.cat].label;
   $("#hudRead").textContent=readCount;
-  if(mode==="questions"){
-    $("#hudCount").textContent=(currentIndex+1)+" / "+questionTarget;
+  if(gameMode==="questions"){
+    $("#hudCount").textContent=(currentIndex+1)+" / "+gameQuestionTarget;
   }else{
     $("#hudCount").textContent=(currentIndex+1)+"問目";
   }
@@ -801,7 +840,7 @@ function nextCard(read){
   if(ended) return;
   if(read) readCount++; else skipped++;
   currentIndex++;
-  if(mode==="questions" && currentIndex>=questionTarget){
+  if(gameMode==="questions" && currentIndex>=gameQuestionTarget){
     endGame();
   }else{
     renderCard();
@@ -825,24 +864,24 @@ function endGame(){
   if(ended) return;
   ended=true;
   clearInterval(timerId);
-  const e=Math.min(elapsedSec(), mode==="time" ? timeTarget : 99999);
+  const e=Math.min(elapsedSec(), gameMode==="time" ? gameTimeTarget : 99999);
 
   let goalMet, goalRatio, scoreText, metaText, primaryScore;
-  if(mode==="questions"){
+  if(gameMode==="questions"){
     goalMet=e<=lastSetup.goal;
     goalRatio=lastSetup.goal/e;
     scoreText=`${readCount}問`;
-    metaText=`${questionTarget}問中 ${readCount}問読めた ／ ${e.toFixed(1)}秒 ／ とばした問題 ${skipped}問`;
+    metaText=`${gameQuestionTarget}問中 ${readCount}問読めた ／ ${e.toFixed(1)}秒 ／ とばした問題 ${skipped}問`;
     primaryScore = e;
   }else{
     goalMet=readCount>=lastSetup.goal;
     goalRatio=readCount/lastSetup.goal;
     scoreText=`${readCount}問`;
-    metaText=`${formatTime(timeTarget)}で ${readCount}問読めた ／ とばした問題 ${skipped}問`;
+    metaText=`${formatTime(gameTimeTarget)}で ${readCount}問読めた ／ とばした問題 ${skipped}問`;
     primaryScore = readCount;
   }
 
-  const result={mode,readCount,skipped,elapsed:e,goalMet,goalRatio,primaryScore,date:new Date().toISOString(),setup:lastSetup};
+  const result={mode:gameMode,readCount,skipped,elapsed:e,goalMet,goalRatio,primaryScore,date:new Date().toISOString(),setup:lastSetup};
   saveRank(result);
   showResult(result);
 }
@@ -954,6 +993,7 @@ function retry(){
 }
 
 buildSetup();
+showScreen("setupScreen");
 
 $("#startBtn").onclick=startFromSetup;
 $("#nextBtn").onclick=()=>nextCard(true);
@@ -971,8 +1011,9 @@ $("#clearRankBtn").onclick=()=>{
 window.addEventListener("resize",()=>{ if($("#gameScreen").classList.contains("active")) fitFlashText(); });
 document.addEventListener("keydown",e=>{
   if(!$("#gameScreen").classList.contains("active")) return;
-  if(e.code==="Space" || e.code==="Enter"){
-    e.preventDefault(); nextCard(true);
+  if((e.code==="Space" || e.code==="Enter") && !e.repeat){
+    e.preventDefault();
+    nextCard(true);
   }
 });
 </script>
