@@ -383,6 +383,8 @@
       white-space:normal;
     }
     .sentence-text ruby{ruby-position:over}
+    .flash-text ruby.answer-ruby{ruby-position:over}
+    .flash-text ruby.answer-ruby rt{font-size:.30em;font-family:"Klee One","BIZ UDPGothic","Yu Gothic",sans-serif;font-weight:600;letter-spacing:.04em}
     .sentence-text rt{font-size:.38em;font-family:"Klee One","BIZ UDPGothic","Yu Gothic",sans-serif}
     .answer-overlay{
       position:absolute;left:20px;right:20px;bottom:20px;
@@ -515,7 +517,7 @@
 
         <div class="flash-card">
           <div class="flash-text" id="flashText">あ</div>
-          <div class="answer-overlay hidden" id="answerOverlay"></div>
+          
         </div>
 
         <div class="game-actions">
@@ -554,6 +556,16 @@
 <script src="dictionary.js"></script>
 <script>
 const DATA = window.YOMI_DICTIONARY;
+// KANJI_READINGS completeness check
+window.addEventListener("DOMContentLoaded",()=>{
+  ["kanji1","kanji2"].forEach(k=>{
+    if(!DATA[k]) return;
+    const missing=DATA[k].items.filter(w=>!window.KANJI_READINGS || !window.KANJI_READINGS[w]);
+    if(missing.length){
+      console.error("読み未登録:", k, missing);
+    }
+  });
+});
 if(!DATA){
   document.body.innerHTML = '<div style="font-family:sans-serif;padding:24px"><h2>辞書ファイルを読み込めませんでした</h2><p>index.html と dictionary.js を同じフォルダに置いてください。</p></div>';
   throw new Error("dictionary.js not loaded");
@@ -755,6 +767,10 @@ function createPool(cats){
       ? len===1
       : (len>=2 && len<=maxLength);
     if(ok){
+      if((k==="kanji1" || k==="kanji2") &&
+         (!window.KANJI_READINGS || !window.KANJI_READINGS[item])){
+        return;
+      }
       p.push({text:item,cat:k});
     }
   }));
@@ -767,34 +783,37 @@ function makeSequence(p, needed){
   return out.slice(0,needed);
 }
 function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function buildWeightedSequence(p, needed){
-  if(wordMode==="single") return makeSequence(p,needed);
-
-  const exact=p.filter(x=>charCount(x.text)===maxLength);
-
-  // 2文字設定は100% 2文字
-  if(maxLength===2){
-    return makeSequence(exact.length?exact:p,needed);
+function takeWithoutRepeat(poolList,count){
+  if(!poolList.length || count<=0) return [];
+  const out=[];
+  let deck=shuffle(poolList);
+  let pos=0;
+  while(out.length<count){
+    if(pos>=deck.length){
+      deck=shuffle(poolList);
+      pos=0;
+    }
+    out.push(deck[pos++]);
   }
-
+  return out;
+}
+function buildWeightedSequence(p, needed){
+  if(wordMode==="single") return takeWithoutRepeat(p,needed);
+  const exact=p.filter(x=>charCount(x.text)===maxLength);
+  if(maxLength===2){
+    return takeWithoutRepeat(exact.length?exact:p,needed);
+  }
   const shorter=p.filter(x=>{
     const n=charCount(x.text);
     return n>=2 && n<maxLength;
   });
-
-  if(!exact.length) return makeSequence(p,needed);
-
-  // 必ず80%以上を設定文字数にする
+  if(!exact.length) return takeWithoutRepeat(p,needed);
   const exactCount=Math.ceil(needed*0.8);
   const shortCount=needed-exactCount;
-  const out=[];
-
-  out.push(...makeSequence(exact,exactCount));
-  if(shortCount>0){
-    if(shorter.length) out.push(...makeSequence(shorter,shortCount));
-    else out.push(...makeSequence(exact,shortCount));
-  }
-  return shuffle(out);
+  return shuffle([
+    ...takeWithoutRepeat(exact,exactCount),
+    ...(shorter.length ? takeWithoutRepeat(shorter,shortCount) : takeWithoutRepeat(exact,shortCount))
+  ]);
 }
 function sentenceToHtml(parts){
   return parts.map(p=>p.r?`<ruby>${p.t}<rt>${p.r}</rt></ruby>`:p.t).join("");
@@ -839,7 +858,7 @@ function startFromSetup(){
     return;
   }
   const needed = gameMode==="questions" ? gameQuestionTarget : Math.max(200,pool.length*3);
-  sequence = readingMode==="sentence" ? makeSequence(pool,needed) : buildWeightedSequence(pool,needed);
+  sequence = readingMode==="sentence" ? takeWithoutRepeat(pool,needed) : buildWeightedSequence(pool,needed);
 
   currentIndex=0; readCount=0; skipped=0; ended=false;
   doCountdown();
@@ -903,7 +922,6 @@ function renderCard(){
   }
   const card=sequence[currentIndex];
   const flash=$("#flashText");
-  $("#answerOverlay").classList.add("hidden");
   flash.classList.remove("sentence-text");
   flash.classList.toggle("vertical",writingDirection==="vertical"&&readingMode!=="sentence");
   $("#gameScreen").classList.toggle("vertical-game",writingDirection==="vertical"&&readingMode!=="sentence");
@@ -944,20 +962,26 @@ function isKanjiCard(card){
   return readingMode==="word"&&(card.cat==="kanji1"||card.cat==="kanji2");
 }
 function getKanjiAnswer(card){
-  return (window.KANJI_READINGS&&window.KANJI_READINGS[card.text])||"読みを確認";
+  return window.KANJI_READINGS[card.text];
 }
 function showKanjiAnswerThenNext(read){
   if(answerShowing||ended) return;
   const card=sequence[currentIndex];
   if(!isKanjiCard(card)){ nextCard(read); return; }
+
   answerShowing=true;
-  $("#answerOverlay").textContent=getKanjiAnswer(card);
-  $("#answerOverlay").classList.remove("hidden");
-  $("#nextBtn").disabled=true; $("#skipBtn").disabled=true;
+  const reading=getKanjiAnswer(card);
+  const flash=$("#flashText");
+  flash.innerHTML=`<ruby class="answer-ruby">${card.text}<rt>${reading}</rt></ruby>`;
+  $("#nextBtn").disabled=true;
+  $("#skipBtn").disabled=true;
+  fitFlashText();
+
   setTimeout(()=>{
-    $("#answerOverlay").classList.add("hidden");
-    $("#nextBtn").disabled=false; $("#skipBtn").disabled=false;
-    answerShowing=false; nextCard(read);
+    $("#nextBtn").disabled=false;
+    $("#skipBtn").disabled=false;
+    answerShowing=false;
+    nextCard(read);
   },1000);
 }
 function nextCard(read){
