@@ -371,6 +371,26 @@
       min-height:0;
     }
 
+
+    .sentence-text{
+      font-family:"Klee One","UD Digi Kyokasho N-R","BIZ UDPGothic","Yu Gothic",sans-serif;
+      font-size:clamp(34px,6vw,72px);
+      font-weight:600;
+      line-height:1.9;
+      text-align:center;
+      padding:20px;
+      max-width:100%;
+      white-space:normal;
+    }
+    .sentence-text ruby{ruby-position:over}
+    .sentence-text rt{font-size:.38em;font-family:"Klee One","BIZ UDPGothic","Yu Gothic",sans-serif}
+    .answer-overlay{
+      position:absolute;left:20px;right:20px;bottom:20px;
+      background:rgba(255,255,255,.97);border:3px solid var(--accent);border-radius:18px;
+      padding:14px 18px;text-align:center;font-size:clamp(26px,4vw,48px);font-weight:900;
+      box-shadow:var(--shadow);z-index:5;
+    }
+    .flash-card{position:relative}
     .hidden{display:none!important}
 
     @media (max-width:760px){
@@ -411,7 +431,23 @@
         </div>
 
         <div class="section">
-          <h2>③ チャレンジ方法</h2>
+          <h2>③ 読みモード</h2>
+          <div class="inline-options" id="readingModeOptions">
+            <button type="button" class="pill selected" data-reading-mode="word">単語・漢字</button>
+            <button type="button" class="pill" data-reading-mode="sentence">短文読み</button>
+          </div>
+          <div id="sentenceGradeWrap" class="hidden" style="margin-top:10px">
+            <div class="inline-options" id="sentenceGradeOptions">
+              <button type="button" class="pill selected" data-grade="grade1">1年生</button>
+              <button type="button" class="pill" data-grade="grade2">2年生</button>
+              <button type="button" class="pill" data-grade="grade3">3年生</button>
+            </div>
+            <p class="setup-note" style="margin-top:8px">その学年までに読める漢字を使い、漢字にはルビを表示します。</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>④ チャレンジ方法</h2>
           <div class="mode-row">
             <div class="mode-card active" id="questionModeCard">
               <div class="mode-title">問題数をきめる</div>
@@ -425,7 +461,7 @@
         </div>
 
         <div class="section">
-          <h2>④ よみの長さ</h2>
+          <h2>⑤ よみの長さ</h2>
           <div class="inline-options" id="wordModeOptions" style="margin-bottom:10px">
             <button type="button" class="pill" data-mode="single">単音（1文字）</button>
             <button type="button" class="pill selected" data-mode="word">単語</button>
@@ -437,7 +473,7 @@
         </div>
 
         <div class="section">
-          <h2>⑤ じぶんの目標</h2>
+          <h2>⑥ じぶんの目標</h2>
           <div class="goal-row">
             <div>
               <label id="goalLabel">目標タイム（秒）</label>
@@ -479,6 +515,7 @@
 
         <div class="flash-card">
           <div class="flash-text" id="flashText">あ</div>
+          <div class="answer-overlay hidden" id="answerOverlay"></div>
         </div>
 
         <div class="game-actions">
@@ -538,6 +575,8 @@ let timeTarget = 60;
 let maxLength = 3;
 let wordMode = "word";
 let writingDirection = "horizontal";
+let readingMode = "word";
+let sentenceGrade = "grade1";
 let selectedCategories = ["seion"];
 let pool = [];
 let sequence = [];
@@ -547,6 +586,7 @@ let skipped = 0;
 let startTime = 0;
 let timerId = null;
 let ended = false;
+let answerShowing = false;
 let lastSetup = null;
 
 // ゲーム開始時に固定する設定
@@ -653,6 +693,21 @@ function buildSetup(){
   };
   refreshLengthUI();
 
+  $("#readingModeOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-reading-mode]");
+    if(!btn) return;
+    readingMode=btn.dataset.readingMode;
+    [...$("#readingModeOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
+    $("#sentenceGradeWrap").classList.toggle("hidden",readingMode!=="sentence");
+  };
+
+  $("#sentenceGradeOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-grade]");
+    if(!btn) return;
+    sentenceGrade=btn.dataset.grade;
+    [...$("#sentenceGradeOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
+  };
+
   $("#directionOptions").onclick=e=>{
     const btn=e.target.closest("button[data-dir]");
     if(!btn) return;
@@ -708,11 +763,43 @@ function createPool(cats){
 function makeSequence(p, needed){
   let out=[];
   if(!p.length) return out;
-  while(out.length<needed){
-    out.push(...shuffle(p));
-  }
+  while(out.length<needed){ out.push(...shuffle(p)); }
   return out.slice(0,needed);
 }
+function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function buildWeightedSequence(p, needed){
+  if(wordMode==="single") return makeSequence(p,needed);
+
+  const exact=p.filter(x=>charCount(x.text)===maxLength);
+
+  // 2文字設定は100% 2文字
+  if(maxLength===2){
+    return makeSequence(exact.length?exact:p,needed);
+  }
+
+  const shorter=p.filter(x=>{
+    const n=charCount(x.text);
+    return n>=2 && n<maxLength;
+  });
+
+  if(!exact.length) return makeSequence(p,needed);
+
+  // 必ず80%以上を設定文字数にする
+  const exactCount=Math.ceil(needed*0.8);
+  const shortCount=needed-exactCount;
+  const out=[];
+
+  out.push(...makeSequence(exact,exactCount));
+  if(shortCount>0){
+    if(shorter.length) out.push(...makeSequence(shorter,shortCount));
+    else out.push(...makeSequence(exact,shortCount));
+  }
+  return shuffle(out);
+}
+function sentenceToHtml(parts){
+  return parts.map(p=>p.r?`<ruby>${p.t}<rt>${p.r}</rt></ruby>`:p.t).join("");
+}
+function sentencePlain(parts){ return parts.map(p=>p.t).join(""); }
 function startFromSetup(){
   selectedCategories=getSelectedCategories();
   if(selectedCategories.length===0){
@@ -735,17 +822,24 @@ function startFromSetup(){
     maxLength,
     wordMode,
     writingDirection,
+    readingMode,
+    sentenceGrade,
     selectedCategories:[...selectedCategories],
     goal
   };
 
-  pool=createPool(selectedCategories);
+  if(readingMode==="sentence"){
+    const sentenceData=(window.SHORT_SENTENCES&&window.SHORT_SENTENCES[sentenceGrade])||[];
+    pool=sentenceData.map(parts=>({text:sentencePlain(parts),parts,cat:"sentence"}));
+  }else{
+    pool=createPool(selectedCategories);
+  }
   if(pool.length===0){
     alert("この設定では出せる問題がありません。単音／単語、文字数、読むものを変更してください。");
     return;
   }
   const needed = gameMode==="questions" ? gameQuestionTarget : Math.max(200,pool.length*3);
-  sequence=makeSequence(pool,needed);
+  sequence = readingMode==="sentence" ? makeSequence(pool,needed) : buildWeightedSequence(pool,needed);
 
   currentIndex=0; readCount=0; skipped=0; ended=false;
   doCountdown();
@@ -808,10 +902,19 @@ function renderCard(){
     sequence.push(...shuffle(pool));
   }
   const card=sequence[currentIndex];
-  $("#flashText").textContent=card.text;
-  $("#flashText").classList.toggle("vertical", writingDirection==="vertical");
-  $("#gameScreen").classList.toggle("vertical-game", writingDirection==="vertical");
-  $("#hudCategory").textContent=DATA[card.cat].label;
+  const flash=$("#flashText");
+  $("#answerOverlay").classList.add("hidden");
+  flash.classList.remove("sentence-text");
+  flash.classList.toggle("vertical",writingDirection==="vertical"&&readingMode!=="sentence");
+  $("#gameScreen").classList.toggle("vertical-game",writingDirection==="vertical"&&readingMode!=="sentence");
+  if(readingMode==="sentence"){
+    flash.classList.add("sentence-text");
+    flash.innerHTML=sentenceToHtml(card.parts);
+    $("#hudCategory").textContent=({grade1:"短文1年",grade2:"短文2年",grade3:"短文3年"})[sentenceGrade];
+  }else{
+    flash.textContent=card.text;
+    $("#hudCategory").textContent=DATA[card.cat].label;
+  }
   $("#hudRead").textContent=readCount;
   if(gameMode==="questions"){
     $("#hudCount").textContent=(currentIndex+1)+" / "+gameQuestionTarget;
@@ -823,6 +926,7 @@ function renderCard(){
 function fitFlashText(){
   const text=$("#flashText");
   const box=text.parentElement;
+  if(readingMode==="sentence"){ text.style.fontSize=""; return; }
   let size;
   if(writingDirection==="vertical"){
     size=Math.min(box.clientWidth*0.42, 170);
@@ -835,6 +939,26 @@ function fitFlashText(){
     size-=4;
     text.style.fontSize=size+"px";
   }
+}
+function isKanjiCard(card){
+  return readingMode==="word"&&(card.cat==="kanji1"||card.cat==="kanji2");
+}
+function getKanjiAnswer(card){
+  return (window.KANJI_READINGS&&window.KANJI_READINGS[card.text])||"読みを確認";
+}
+function showKanjiAnswerThenNext(read){
+  if(answerShowing||ended) return;
+  const card=sequence[currentIndex];
+  if(!isKanjiCard(card)){ nextCard(read); return; }
+  answerShowing=true;
+  $("#answerOverlay").textContent=getKanjiAnswer(card);
+  $("#answerOverlay").classList.remove("hidden");
+  $("#nextBtn").disabled=true; $("#skipBtn").disabled=true;
+  setTimeout(()=>{
+    $("#answerOverlay").classList.add("hidden");
+    $("#nextBtn").disabled=false; $("#skipBtn").disabled=false;
+    answerShowing=false; nextCard(read);
+  },1000);
 }
 function nextCard(read){
   if(ended) return;
@@ -858,7 +982,7 @@ function titleFor(result){
 function rankKey(setup){
   const cats=[...setup.selectedCategories].sort().join("-");
   const base = setup.mode==="questions" ? `q_${setup.questionTarget}` : `t_${setup.timeTarget}`;
-  return `yomiFlashRank_v6_${base}_${setup.wordMode}_len${setup.maxLength}_${setup.writingDirection}_${cats}`;
+  return `yomiFlashRank_v7_${base}_${setup.readingMode}_${setup.sentenceGrade}_${setup.wordMode}_len${setup.maxLength}_${setup.writingDirection}_${cats}`;
 }
 function endGame(){
   if(ended) return;
@@ -911,7 +1035,9 @@ function showResult(result){
   }
 
   const cats=result.setup.selectedCategories.map(k=>DATA[k].label).join("・");
-  $("#resultDetail").innerHTML=`読むもの：${cats}<br>長さ：${result.setup.wordMode==="single" ? "単音（1文字）" : result.setup.maxLength+"文字までの単語"}<br>文字の向き：${result.setup.writingDirection==="vertical" ? "縦書き" : "横書き"}<br>とばした問題：${result.skipped}問`;
+  $("#resultDetail").innerHTML = result.setup.readingMode==="sentence"
+    ? `読みモード：短文（${({grade1:"1年生",grade2:"2年生",grade3:"3年生"})[result.setup.sentenceGrade]}）<br>とばした問題：${result.skipped}問`
+    : `読むもの：${cats}<br>長さ：${result.setup.wordMode==="single" ? "単音（1文字）" : result.setup.maxLength+"文字までの単語"}<br>文字の向き：${result.setup.writingDirection==="vertical" ? "縦書き" : "横書き"}<br>とばした問題：${result.skipped}問`;
   renderRanking(result.setup);
 }
 function saveRank(result){
@@ -963,7 +1089,7 @@ function renderRanking(setup){
 }
 function restoreSetup(setup){
   if(!setup) return;
-  mode=setup.mode; questionTarget=setup.questionTarget; timeTarget=setup.timeTarget; maxLength=setup.maxLength || 3; wordMode=setup.wordMode || "word"; writingDirection=setup.writingDirection || "horizontal";
+  mode=setup.mode; questionTarget=setup.questionTarget; timeTarget=setup.timeTarget; maxLength=setup.maxLength || 3; wordMode=setup.wordMode || "word"; writingDirection=setup.writingDirection || "horizontal"; readingMode=setup.readingMode || "word"; sentenceGrade=setup.sentenceGrade || "grade1";
   setMode(mode);
   categoryOrder.forEach(k=>$("#cat_"+k).checked=setup.selectedCategories.includes(k));
   [...$("#questionOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===questionTarget));
@@ -980,6 +1106,9 @@ function restoreSetup(setup){
     ? "単音では、ひらがな・カタカナ・漢字などを1文字ずつ出します。"
     : `単語では、2〜${maxLength}文字までのことばが出ます。`;
   [...$("#directionOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.dir===writingDirection));
+  [...$("#readingModeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.readingMode===readingMode));
+  $("#sentenceGradeWrap").classList.toggle("hidden",readingMode!=="sentence");
+  [...$("#sentenceGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.grade===sentenceGrade));
   $("#goalInput").value=setup.goal;
 }
 function goSetup(){
@@ -996,8 +1125,8 @@ buildSetup();
 showScreen("setupScreen");
 
 $("#startBtn").onclick=startFromSetup;
-$("#nextBtn").onclick=()=>nextCard(true);
-$("#skipBtn").onclick=()=>nextCard(false);
+$("#nextBtn").onclick=()=>showKanjiAnswerThenNext(true);
+$("#skipBtn").onclick=()=>showKanjiAnswerThenNext(false);
 $("#homeBtn").onclick=goSetup;
 $("#retryBtn").onclick=retry;
 $("#setupBtn").onclick=goSetup;
@@ -1013,7 +1142,7 @@ document.addEventListener("keydown",e=>{
   if(!$("#gameScreen").classList.contains("active")) return;
   if((e.code==="Space" || e.code==="Enter") && !e.repeat){
     e.preventDefault();
-    nextCard(true);
+    showKanjiAnswerThenNext(true);
   }
 });
 </script>
