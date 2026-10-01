@@ -54,7 +54,7 @@
     .brand{
       font-weight:900;
       font-size:clamp(24px,3vw,38px);
-      letter-spacing:.05em;
+      letter-spacing:.01em;
     }
     .small-btn{
       border:2px solid var(--line);
@@ -248,7 +248,7 @@
       font-weight:600;
       text-align:center;
       line-height:1.08;
-      letter-spacing:.05em;
+      letter-spacing:.01em;
       font-size:clamp(72px,18vh,190px);
       word-break:keep-all;
       white-space:nowrap;
@@ -360,7 +360,7 @@
       writing-mode:vertical-rl;
       text-orientation:upright;
       white-space:nowrap;
-      letter-spacing:.08em;
+      letter-spacing:0;
       line-height:1.15;
     }
     #gameScreen.vertical-game .game-panel{
@@ -463,14 +463,16 @@
         </div>
 
         <div class="section">
-          <h2>⑤ よみの長さ</h2>
-          <div class="inline-options" id="wordModeOptions" style="margin-bottom:10px">
-            <button type="button" class="pill" data-mode="single">単音（1文字）</button>
-            <button type="button" class="pill selected" data-mode="word">単語</button>
+          <h2>⑤ レベル</h2>
+          <div class="inline-options" id="levelOptions">
+            <button type="button" class="pill" data-level="1">レベル1<br><span style="font-size:12px">1文字</span></button>
+            <button type="button" class="pill" data-level="2">レベル2<br><span style="font-size:12px">2文字</span></button>
+            <button type="button" class="pill selected" data-level="3">レベル3<br><span style="font-size:12px">3文字まで</span></button>
+            <button type="button" class="pill" data-level="4">レベル4<br><span style="font-size:12px">4文字まで</span></button>
+            <button type="button" class="pill" data-level="5">レベル5<br><span style="font-size:12px">5文字まで</span></button>
           </div>
-          <div class="inline-options" id="lengthOptions"></div>
-          <p class="setup-note" id="lengthHelp" style="margin-top:8px">
-            単語は「3文字まで」のように、最大文字数を選びます。
+          <p class="setup-note" id="levelHelp" style="margin-top:8px">
+            レベル3：3文字のことばを中心に、3文字までのことばが出ます。
           </p>
         </div>
 
@@ -556,16 +558,6 @@
 <script src="dictionary.js"></script>
 <script>
 const DATA = window.YOMI_DICTIONARY;
-// KANJI_READINGS completeness check
-window.addEventListener("DOMContentLoaded",()=>{
-  ["kanji1","kanji2"].forEach(k=>{
-    if(!DATA[k]) return;
-    const missing=DATA[k].items.filter(w=>!window.KANJI_READINGS || !window.KANJI_READINGS[w]);
-    if(missing.length){
-      console.error("読み未登録:", k, missing);
-    }
-  });
-});
 if(!DATA){
   document.body.innerHTML = '<div style="font-family:sans-serif;padding:24px"><h2>辞書ファイルを読み込めませんでした</h2><p>index.html と dictionary.js を同じフォルダに置いてください。</p></div>';
   throw new Error("dictionary.js not loaded");
@@ -579,13 +571,12 @@ const timeChoices = [
   {sec:30,label:"30秒"},{sec:60,label:"1分"},{sec:90,label:"1分30秒"},
   {sec:120,label:"2分"},{sec:150,label:"2分30秒"},{sec:180,label:"3分"}
 ];
-const lengthChoices = [2,3,4,5];
 
 let mode = "questions";
 let questionTarget = 10;
 let timeTarget = 60;
+let readingLevel = 3;
 let maxLength = 3;
-let wordMode = "word";
 let writingDirection = "horizontal";
 let readingMode = "word";
 let sentenceGrade = "grade1";
@@ -663,47 +654,24 @@ function buildSetup(){
     to.appendChild(b);
   });
 
-  const lo=$("#lengthOptions");
-
-  function refreshLengthUI(){
-    [...$("#wordModeOptions").children].forEach(b=>{
-      b.classList.toggle("selected", b.dataset.mode===wordMode);
-    });
-
-    [...lo.children].forEach(b=>{
-      const n=Number(b.dataset.value);
-      b.classList.toggle("selected", wordMode==="word" && n===maxLength);
-      b.disabled = wordMode==="single";
-      b.style.opacity = wordMode==="single" ? ".45" : "1";
-      b.textContent = n+"文字まで";
-    });
-
-    $("#lengthHelp").textContent = wordMode==="single"
-      ? "単音では、ひらがな・カタカナ・漢字などを1文字ずつ出します。"
-      : `単語では、2〜${maxLength}文字までのことばが出ます。`;
+  function updateLevelHelp(){
+    maxLength=readingLevel;
+    const text = readingLevel===1
+      ? "レベル1：1文字だけを出します。"
+      : readingLevel===2
+        ? "レベル2：2文字のことばだけを出します。"
+        : `レベル${readingLevel}：${readingLevel}文字のことばを80％以上、残りは短いことばから出します。`;
+    $("#levelHelp").textContent=text;
   }
 
-  lengthChoices.forEach(n=>{
-    const b=document.createElement("button");
-    b.type="button";
-    b.className="pill"+(n===3?" selected":"");
-    b.dataset.value=n;
-    b.textContent=n+"文字まで";
-    b.onclick=()=>{
-      if(wordMode!=="word") return;
-      maxLength=n;
-      refreshLengthUI();
-    };
-    lo.appendChild(b);
-  });
-
-  $("#wordModeOptions").onclick=e=>{
-    const btn=e.target.closest("button[data-mode]");
+  $("#levelOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-level]");
     if(!btn) return;
-    wordMode=btn.dataset.mode;
-    refreshLengthUI();
+    readingLevel=Number(btn.dataset.level);
+    [...$("#levelOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
+    updateLevelHelp();
   };
-  refreshLengthUI();
+  updateLevelHelp();
 
   $("#readingModeOptions").onclick=e=>{
     const btn=e.target.closest("button[data-reading-mode]");
@@ -763,9 +731,14 @@ function createPool(cats){
   let p=[];
   cats.forEach(k=>DATA[k].items.forEach(item=>{
     const len=charCount(item);
-    const ok = wordMode==="single"
-      ? len===1
-      : (len>=2 && len<=maxLength);
+    let ok=false;
+    if(readingLevel===1){
+      ok = len===1;
+    }else if(readingLevel===2){
+      ok = len===2;
+    }else{
+      ok = len>=2 && len<=readingLevel;
+    }
     if(ok){
       if((k==="kanji1" || k==="kanji2") &&
          (!window.KANJI_READINGS || !window.KANJI_READINGS[item])){
@@ -798,21 +771,32 @@ function takeWithoutRepeat(poolList,count){
   return out;
 }
 function buildWeightedSequence(p, needed){
-  if(wordMode==="single") return takeWithoutRepeat(p,needed);
-  const exact=p.filter(x=>charCount(x.text)===maxLength);
-  if(maxLength===2){
-    return takeWithoutRepeat(exact.length?exact:p,needed);
+  if(readingLevel===1){
+    const one=p.filter(x=>charCount(x.text)===1);
+    return takeWithoutRepeat(one.length?one:p,needed);
   }
+
+  if(readingLevel===2){
+    const two=p.filter(x=>charCount(x.text)===2);
+    return takeWithoutRepeat(two.length?two:p,needed);
+  }
+
+  const exact=p.filter(x=>charCount(x.text)===readingLevel);
   const shorter=p.filter(x=>{
     const n=charCount(x.text);
-    return n>=2 && n<maxLength;
+    return n>=2 && n<readingLevel;
   });
+
   if(!exact.length) return takeWithoutRepeat(p,needed);
+
   const exactCount=Math.ceil(needed*0.8);
   const shortCount=needed-exactCount;
+
   return shuffle([
     ...takeWithoutRepeat(exact,exactCount),
-    ...(shorter.length ? takeWithoutRepeat(shorter,shortCount) : takeWithoutRepeat(exact,shortCount))
+    ...(shorter.length
+      ? takeWithoutRepeat(shorter,shortCount)
+      : takeWithoutRepeat(exact,shortCount))
   ]);
 }
 function sentenceToHtml(parts){
@@ -838,8 +822,8 @@ function startFromSetup(){
     mode:gameMode,
     questionTarget:gameQuestionTarget,
     timeTarget:gameTimeTarget,
-    maxLength,
-    wordMode,
+    readingLevel,
+    maxLength:readingLevel,
     writingDirection,
     readingMode,
     sentenceGrade,
@@ -1006,7 +990,7 @@ function titleFor(result){
 function rankKey(setup){
   const cats=[...setup.selectedCategories].sort().join("-");
   const base = setup.mode==="questions" ? `q_${setup.questionTarget}` : `t_${setup.timeTarget}`;
-  return `yomiFlashRank_v7_${base}_${setup.readingMode}_${setup.sentenceGrade}_${setup.wordMode}_len${setup.maxLength}_${setup.writingDirection}_${cats}`;
+  return `yomiFlashRank_v8_${base}_${setup.readingMode}_${setup.sentenceGrade}_level${setup.readingLevel}_${setup.writingDirection}_${cats}`;
 }
 function endGame(){
   if(ended) return;
@@ -1061,7 +1045,7 @@ function showResult(result){
   const cats=result.setup.selectedCategories.map(k=>DATA[k].label).join("・");
   $("#resultDetail").innerHTML = result.setup.readingMode==="sentence"
     ? `読みモード：短文（${({grade1:"1年生",grade2:"2年生",grade3:"3年生"})[result.setup.sentenceGrade]}）<br>とばした問題：${result.skipped}問`
-    : `読むもの：${cats}<br>長さ：${result.setup.wordMode==="single" ? "単音（1文字）" : result.setup.maxLength+"文字までの単語"}<br>文字の向き：${result.setup.writingDirection==="vertical" ? "縦書き" : "横書き"}<br>とばした問題：${result.skipped}問`;
+    : `読むもの：${cats}<br>レベル：${result.setup.readingLevel}<br>文字の向き：${result.setup.writingDirection==="vertical" ? "縦書き" : "横書き"}<br>とばした問題：${result.skipped}問`;
   renderRanking(result.setup);
 }
 function saveRank(result){
@@ -1090,8 +1074,8 @@ function renderRanking(setup){
   const list=$("#rankList");
   list.innerHTML="";
   $("#rankLabel").textContent = setup.mode==="questions"
-    ? `${setup.questionTarget}問・${setup.wordMode==="single" ? "単音" : setup.maxLength+"文字まで"}・${setup.writingDirection==="vertical" ? "縦" : "横"}・${setup.selectedCategories.map(k=>DATA[k].label).join("＋")}`
-    : `${formatTime(setup.timeTarget)}・${setup.wordMode==="single" ? "単音" : setup.maxLength+"文字まで"}・${setup.writingDirection==="vertical" ? "縦" : "横"}・${setup.selectedCategories.map(k=>DATA[k].label).join("＋")}`;
+    ? `${setup.questionTarget}問・${"レベル"+setup.readingLevel}・${setup.writingDirection==="vertical" ? "縦" : "横"}・${setup.selectedCategories.map(k=>DATA[k].label).join("＋")}`
+    : `${formatTime(setup.timeTarget)}・${"レベル"+setup.readingLevel}・${setup.writingDirection==="vertical" ? "縦" : "横"}・${setup.selectedCategories.map(k=>DATA[k].label).join("＋")}`;
 
   if(!arr.length){
     list.innerHTML='<div class="setup-note">まだ記録がありません。</div>';
@@ -1113,22 +1097,19 @@ function renderRanking(setup){
 }
 function restoreSetup(setup){
   if(!setup) return;
-  mode=setup.mode; questionTarget=setup.questionTarget; timeTarget=setup.timeTarget; maxLength=setup.maxLength || 3; wordMode=setup.wordMode || "word"; writingDirection=setup.writingDirection || "horizontal"; readingMode=setup.readingMode || "word"; sentenceGrade=setup.sentenceGrade || "grade1";
+  mode=setup.mode; questionTarget=setup.questionTarget; timeTarget=setup.timeTarget; readingLevel=setup.readingLevel || setup.maxLength || 3; maxLength=readingLevel; writingDirection=setup.writingDirection || "horizontal"; readingMode=setup.readingMode || "word"; sentenceGrade=setup.sentenceGrade || "grade1";
   setMode(mode);
   categoryOrder.forEach(k=>$("#cat_"+k).checked=setup.selectedCategories.includes(k));
   [...$("#questionOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===questionTarget));
   [...$("#timeOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===timeTarget));
-  [...$("#wordModeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.mode===wordMode));
-  [...$("#lengthOptions").children].forEach(b=>{
-    const n=Number(b.dataset.value);
-    b.classList.toggle("selected",wordMode==="word" && n===maxLength);
-    b.disabled = wordMode==="single";
-    b.style.opacity = wordMode==="single" ? ".45" : "1";
-    b.textContent = n+"文字まで";
+  [...$("#levelOptions").children].forEach(b=>{
+    b.classList.toggle("selected",Number(b.dataset.level)===readingLevel);
   });
-  $("#lengthHelp").textContent = wordMode==="single"
-    ? "単音では、ひらがな・カタカナ・漢字などを1文字ずつ出します。"
-    : `単語では、2〜${maxLength}文字までのことばが出ます。`;
+  $("#levelHelp").textContent = readingLevel===1
+    ? "レベル1：1文字だけを出します。"
+    : readingLevel===2
+      ? "レベル2：2文字のことばだけを出します。"
+      : `レベル${readingLevel}：${readingLevel}文字のことばを80％以上、残りは短いことばから出します。`;
   [...$("#directionOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.dir===writingDirection));
   [...$("#readingModeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.readingMode===readingMode));
   $("#sentenceGradeWrap").classList.toggle("hidden",readingMode!=="sentence");
