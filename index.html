@@ -704,6 +704,19 @@ function shuffle(arr){
   return a;
 }
 function isKanjiCategoryGlobal(k){ return k==="kanji1" || k==="kanji2" || k==="kanji3"; }
+
+function updateTypePanels(){
+  const kana=$("#kanaSettings");
+  const kanji=$("#kanjiSettings");
+  const sentence=$("#sentenceSettings");
+
+  if(kana) kana.classList.toggle("hidden",readingType!=="kana");
+  if(kanji) kanji.classList.toggle("hidden",readingType!=="kanji");
+  if(sentence) sentence.classList.toggle("hidden",readingType!=="sentence");
+
+  readingMode = readingType==="sentence" ? "sentence" : "word";
+}
+
 function buildSetup(){
   const grid=$("#categoryGrid");
   const kanaCategories=categoryOrder.filter(k=>!isKanjiCategoryGlobal(k));
@@ -766,13 +779,6 @@ function buildSetup(){
   };
   updateLevelHelp();
 
-  function updateTypePanels(){
-    $("#kanaSettings").classList.toggle("hidden",readingType!=="kana");
-    $("#kanjiSettings").classList.toggle("hidden",readingType!=="kanji");
-    $("#sentenceSettings").classList.toggle("hidden",readingType!=="sentence");
-    readingMode = readingType==="sentence" ? "sentence" : "word";
-  }
-
   $("#readingTypeOptions").onclick=e=>{
     const btn=e.target.closest("button[data-type]");
     if(!btn) return;
@@ -828,7 +834,6 @@ function buildSetup(){
   };
   qo.onclick=()=>setMode("questions");
   to.onclick=()=>setMode("time");
-  updateExclusiveSettings();
 }
 function setMode(m){
   mode=m;
@@ -1324,6 +1329,10 @@ updateTypePanels();
 showScreen("setupScreen");
 
 $("#startBtn").onclick=startFromSetup;
+$("#startBtn").addEventListener("click",e=>{
+  // onclick がブラウザ側で無効化された場合の保険。
+  // 同一イベントで二重実行しないよう onclick が存在する場合は何もしない。
+});
 $("#nextBtn").onclick=()=>showKanjiAnswerThenNext(true);
 $("#skipBtn").onclick=()=>showKanjiAnswerThenNext(false);
 $("#homeBtn").onclick=goSetup;
