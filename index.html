@@ -458,6 +458,9 @@
       padding-top:10px;
     }
 
+    .csv-preview{margin-top:10px;max-height:180px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px 12px}
+    .csv-preview table{width:100%;border-collapse:collapse;font-size:14px}
+    .csv-preview th,.csv-preview td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
     .hidden{display:none!important}
 
     @media (max-width:760px){
@@ -489,6 +492,7 @@
             <button type="button" class="pill selected" data-type="kana">ひらがな・カタカナ</button>
             <button type="button" class="pill" data-type="kanji">漢字</button>
             <button type="button" class="pill" data-type="sentence">短文</button>
+            <button type="button" class="pill" data-type="csv">CSV問題</button>
           </div>
         </div>
 
@@ -541,6 +545,14 @@
             <p class="setup-note" style="margin-top:6px">「あり」は、ことばの間にスペースを入れて表示します。</p>
             <p class="setup-note" style="margin-top:6px">学年外の漢字は、習っている漢字を残して、未習部分だけひらがなで表示します。</p>
           </div>
+        </div>
+
+        <div class="section hidden" id="csvSettings">
+          <h2>② CSVから問題を読み込む</h2>
+          <input type="file" id="csvFileInput" accept=".csv,text/csv">
+          <p class="setup-note">1行目は「問題,読み」。読みは空欄でも使えます。</p>
+          <div id="csvStatus" class="setup-note">CSVはまだ読み込まれていません。</div>
+          <div id="csvPreview" class="csv-preview hidden"></div>
         </div>
 
         <div class="section">
@@ -701,6 +713,8 @@ let writingDirection = "horizontal";
 let readingMode = "word";
 let readingType = "kana";
 let selectedKanjiGrade = "kanji1";
+let customCsvQuestions=[];
+let customCsvFileName="";
 let sentenceGrade = "grade1";
 let sentenceRuby = "on";
 let sentenceWakachi = "on";
@@ -743,14 +757,52 @@ function updateTypePanels(){
   const kana=$("#kanaSettings");
   const kanji=$("#kanjiSettings");
   const sentence=$("#sentenceSettings");
+  const csv=$("#csvSettings");
 
   if(kana) kana.classList.toggle("hidden",readingType!=="kana");
   if(kanji) kanji.classList.toggle("hidden",readingType!=="kanji");
   if(sentence) sentence.classList.toggle("hidden",readingType!=="sentence");
+  if(csv) csv.classList.toggle("hidden",readingType!=="csv");
 
-  readingMode = readingType==="sentence" ? "sentence" : "word";
+  readingMode = readingType==="sentence" ? "sentence" : (readingType==="csv" ? "csv" : "word");
 }
 
+
+function escapeHtml(s){
+  return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function parseCsvText(t){
+  t=t.replace(/^\uFEFF/,"");
+  const rows=[]; let row=[],cell="",q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){
+      if(c=='"' && t[i+1]=='"'){cell+='"';i++;}
+      else if(c=='"') q=false;
+      else cell+=c;
+    }else{
+      if(c=='"') q=true;
+      else if(c==','){row.push(cell);cell="";}
+      else if(c=='\n'){row.push(cell.replace(/\r$/,""));rows.push(row);row=[];cell="";}
+      else cell+=c;
+    }
+  }
+  if(cell.length||row.length){row.push(cell.replace(/\r$/,""));rows.push(row);}
+  const r=rows.filter(x=>x.some(v=>String(v).trim()!==""));
+  if(!r.length) return [];
+  const h=r[0].map(v=>String(v).trim().toLowerCase());
+  const qi=h.findIndex(v=>["問題","もんだい","question","q"].includes(v));
+  const ri=h.findIndex(v=>["読み","よみ","reading","answer","a"].includes(v));
+  if(qi<0) throw new Error("1行目に「問題」列がありません。");
+  return r.slice(1).map(x=>({text:String(x[qi]??"").trim(),reading:ri>=0?String(x[ri]??"").trim():"",cat:"csv"})).filter(x=>x.text);
+}
+function renderCsvPreview(){
+  const st=$("#csvStatus"),pv=$("#csvPreview");
+  if(!customCsvQuestions.length){st.textContent="CSVはまだ読み込まれていません。";pv.classList.add("hidden");pv.innerHTML="";return;}
+  st.textContent=`${customCsvFileName}：${customCsvQuestions.length}問を読み込みました。`;
+  pv.innerHTML="<table><tr><th>問題</th><th>読み</th></tr>"+customCsvQuestions.slice(0,8).map(x=>`<tr><td>${escapeHtml(x.text)}</td><td>${escapeHtml(x.reading)}</td></tr>`).join("")+"</table>";
+  pv.classList.remove("hidden");
+}
 function buildSetup(){
   const grid=$("#categoryGrid");
   const kanaCategories=categoryOrder.filter(k=>!isKanjiCategoryGlobal(k));
@@ -857,6 +909,23 @@ function buildSetup(){
   };
 
   updateTypePanels();
+
+  $("#csvFileInput").addEventListener("change",e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file){customCsvQuestions=[];customCsvFileName="";renderCsvPreview();return;}
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        customCsvQuestions=parseCsvText(String(reader.result||""));
+        customCsvFileName=file.name;
+        renderCsvPreview();
+      }catch(err){
+        customCsvQuestions=[];
+        $("#csvStatus").textContent="CSVを読み込めませんでした："+err.message;
+      }
+    };
+    reader.readAsText(file,"UTF-8");
+  });
 
   $("#directionOptions").onclick=e=>{
     const btn=e.target.closest("button[data-dir]");
@@ -1078,6 +1147,7 @@ function sentencePlain(parts){ return parts.map(p=>p.t).join(""); }
 function startFromSetup(){
   readingMode = readingType==="sentence" ? "sentence" : "word";
   selectedCategories=getSelectedCategories();
+  if(readingType==="csv" && customCsvQuestions.length===0){alert("CSVファイルを読み込んでください。");return;}
   if(readingType==="kana" && selectedCategories.length===0){
     alert("ひらがな・カタカナの種類を1つ以上えらんでください。");
     return;
@@ -1108,6 +1178,8 @@ function startFromSetup(){
   if(readingMode==="sentence"){
     const sentenceData=(window.SHORT_SENTENCES&&window.SHORT_SENTENCES[sentenceGrade])||[];
     pool=sentenceData.map(parts=>({text:sentencePlain(parts),parts,cat:"sentence"}));
+  }else if(readingType==="csv"){
+    pool=customCsvQuestions.map(x=>({...x}));
   }else{
     pool=createPool(selectedCategories);
   }
@@ -1116,7 +1188,7 @@ function startFromSetup(){
     return;
   }
   const needed = gameMode==="questions" ? gameQuestionTarget : Math.max(200,pool.length*3);
-  sequence = readingMode==="sentence" ? takeWithoutRepeat(pool,needed) : (readingType==="kanji" ? takeWithoutRepeat(pool,needed) : buildWeightedSequence(pool,needed));
+  sequence = (readingMode==="sentence" || readingType==="kanji" || readingType==="csv") ? takeWithoutRepeat(pool,needed) : buildWeightedSequence(pool,needed);
 
   currentIndex=0; readCount=0; skipped=0; ended=false;
   if(writingDirection==="vertical"){
@@ -1213,8 +1285,10 @@ function renderCard(){
     flash.classList.add("sentence-text");
     flash.innerHTML=sentenceToHtml(card.parts);
     $("#hudCategory").textContent=({grade1:"短文1年",grade2:"短文2年",grade3:"短文3年"})[sentenceGrade];
+  }else if(readingType==="csv"){
+    flash.textContent=card.text;
+    $("#hudCategory").textContent="CSV問題";
   }else{
-    const isKanjiCard=isKanjiCategoryGlobal(card.cat);
     flash.textContent=card.text;
     $("#hudCategory").textContent=DATA[card.cat].label;
   }
@@ -1251,27 +1325,24 @@ function isKanjiCard(card){
 function showKanjiAnswerThenNext(read){
   if(answerShowing||ended) return;
   const card=sequence[currentIndex];
-  if(!isKanjiCard(card)){ nextCard(read); return; }
 
+  if(readingType==="csv"){
+    if(!card.reading){nextCard(read);return;}
+    answerShowing=true;
+    const flash=$("#flashText");
+    flash.innerHTML=`<ruby class="answer-ruby"><span class="ruby-base">${escapeHtml(card.text)}</span><rt>${escapeHtml(card.reading)}</rt></ruby>`;
+    $("#nextBtn").disabled=true; $("#skipBtn").disabled=true; fitFlashText();
+    setTimeout(()=>{$("#nextBtn").disabled=false;$("#skipBtn").disabled=false;answerShowing=false;nextCard(read);},1000);
+    return;
+  }
+
+  if(!isKanjiCard(card)){nextCard(read);return;}
   answerShowing=true;
   const flash=$("#flashText");
-
-  // 表示していた問題文字はそのまま残し、上に対応する読みだけを出す。
-  const reading=card.reading || "";
-  flash.innerHTML=reading
-    ? `<ruby class="answer-ruby"><span class="ruby-base">${card.text}</span><rt>${reading}</rt></ruby>`
-    : card.text;
-
-  $("#nextBtn").disabled=true;
-  $("#skipBtn").disabled=true;
-  fitFlashText();
-
-  setTimeout(()=>{
-    $("#nextBtn").disabled=false;
-    $("#skipBtn").disabled=false;
-    answerShowing=false;
-    nextCard(read);
-  },1000);
+  const reading=card.reading||"";
+  flash.innerHTML=reading?`<ruby class="answer-ruby"><span class="ruby-base">${card.text}</span><rt>${reading}</rt></ruby>`:card.text;
+  $("#nextBtn").disabled=true; $("#skipBtn").disabled=true; fitFlashText();
+  setTimeout(()=>{$("#nextBtn").disabled=false;$("#skipBtn").disabled=false;answerShowing=false;nextCard(read);},1000);
 }
 function nextCard(read){
   if(ended) return;
