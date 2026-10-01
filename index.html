@@ -241,7 +241,7 @@
       border-radius:24px;
       box-shadow:var(--shadow);
       padding:10px;
-      overflow:hidden;
+      overflow:visible;
     }
     .flash-text{
       font-family:"Klee One","UD Digi Kyokasho N-R","UD Digi Kyokasho NK-R","UDデジタル教科書体 N-R","BIZ UDPGothic","Yu Gothic",sans-serif;
@@ -378,9 +378,11 @@
       font-weight:600;
       line-height:1.9;
       text-align:center;
-      padding:20px;
+      padding:10px 20px 20px;
       max-width:100%;
       white-space:normal;
+          word-break:break-all;
+      overflow-wrap:anywhere;
     }
     .sentence-text ruby{ruby-position:over}
     .flash-text ruby.answer-ruby{ruby-position:over}
@@ -404,19 +406,34 @@
     .sentence-text.vertical{
       writing-mode:vertical-rl;
       text-orientation:upright;
+
+      /* 教科書の縦書きのように上から下へ流す */
       white-space:normal;
-      height:52vh;
-      max-height:52vh;
-      width:min(72vw,580px);
-      max-width:72vw;
-      line-height:1.65;
-      overflow:hidden;
-      margin:auto;
+      word-break:break-all;
+      overflow-wrap:anywhere;
+      line-break:strict;
+
+      /* カードの高さを使い切って、足りないときだけ次の列へ */
+      height:100%;
+      max-height:100%;
+      width:auto;
+      max-width:100%;
+
+      /* 上詰め・全体は中央寄せ */
+      margin:0 auto;
+      padding:10px 6px;
+      box-sizing:border-box;
+      align-self:stretch;
+
+      line-height:1.45;
+      overflow:visible;
     }
 
     .flash-card:has(.sentence-text){
+      display:flex;
       align-items:flex-start;
       justify-content:center;
+      overflow:visible;
     }
     .sentence-text{
       margin-left:auto;
@@ -1079,7 +1096,6 @@ function renderCard(){
   if(readingMode==="sentence"){
     flash.classList.add("sentence-text");
     flash.innerHTML=sentenceToHtml(card.parts);
-    adjustVerticalSentenceWrap();
     $("#hudCategory").textContent=({grade1:"短文1年",grade2:"短文2年",grade3:"短文3年"})[sentenceGrade];
   }else{
     flash.textContent=card.text;
@@ -1093,38 +1109,10 @@ function renderCard(){
   }
   fitFlashText();
 }
-function adjustVerticalSentenceWrap(){
-  const flash=$("#flashText");
-  flash.classList.remove("wrap-two");
-
-  if(readingMode!=="sentence" || writingDirection!=="vertical") return;
-
-  // まず1列で描画し、縦方向にはみ出す場合だけ2列にする
-  requestAnimationFrame(()=>{
-    const box=flash.parentElement;
-    if(!box) return;
-
-    const flashRect=flash.getBoundingClientRect();
-    const boxRect=box.getBoundingClientRect();
-
-    const overflowVertical =
-      flash.scrollHeight > flash.clientHeight + 2 ||
-      flashRect.height > boxRect.height - 8;
-
-    if(overflowVertical){
-      flash.classList.add("wrap-two");
-    }
-  });
-}
-
 function fitFlashText(){
   const text=$("#flashText");
   const box=text.parentElement;
-  if(readingMode==="sentence"){
-    text.style.fontSize="";
-    adjustVerticalSentenceWrap();
-    return;
-  }
+  if(readingMode==="sentence"){ text.style.fontSize=""; return; }
   let size;
   if(writingDirection==="vertical"){
     size=Math.min(box.clientWidth*0.42, 170);
