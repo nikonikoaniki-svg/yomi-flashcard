@@ -1025,6 +1025,7 @@ function renderCard(){
   if(readingMode==="sentence"){
     flash.classList.add("sentence-text");
     flash.innerHTML=sentenceToHtml(card.parts);
+    adjustVerticalSentenceWrap();
     $("#hudCategory").textContent=({grade1:"短文1年",grade2:"短文2年",grade3:"短文3年"})[sentenceGrade];
   }else{
     flash.textContent=card.text;
@@ -1038,10 +1039,38 @@ function renderCard(){
   }
   fitFlashText();
 }
+function adjustVerticalSentenceWrap(){
+  const flash=$("#flashText");
+  flash.classList.remove("wrap-two");
+
+  if(readingMode!=="sentence" || writingDirection!=="vertical") return;
+
+  // まず1列で描画し、縦方向にはみ出す場合だけ2列にする
+  requestAnimationFrame(()=>{
+    const box=flash.parentElement;
+    if(!box) return;
+
+    const flashRect=flash.getBoundingClientRect();
+    const boxRect=box.getBoundingClientRect();
+
+    const overflowVertical =
+      flash.scrollHeight > flash.clientHeight + 2 ||
+      flashRect.height > boxRect.height - 8;
+
+    if(overflowVertical){
+      flash.classList.add("wrap-two");
+    }
+  });
+}
+
 function fitFlashText(){
   const text=$("#flashText");
   const box=text.parentElement;
-  if(readingMode==="sentence"){ text.style.fontSize=""; return; }
+  if(readingMode==="sentence"){
+    text.style.fontSize="";
+    adjustVerticalSentenceWrap();
+    return;
+  }
   let size;
   if(writingDirection==="vertical"){
     size=Math.min(box.clientWidth*0.42, 170);
