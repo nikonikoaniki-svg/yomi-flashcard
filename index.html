@@ -1235,6 +1235,36 @@ function isKanjiCard(card){
 function getKanjiAnswer(card){
   return window.KANJI_READINGS[card.text];
 }
+
+function splitKanjiDisplayForm(baseText){
+  const display=KANJI_DISPLAY_FORMS[baseText] || baseText;
+
+  // 先頭の漢字部分と、その後ろの送り仮名に分ける
+  const match=display.match(/^([一-龯々〆ヵヶ]+)(.*)$/);
+  if(!match){
+    return {kanji:display, okuri:""};
+  }
+  return {kanji:match[1], okuri:match[2]};
+}
+
+function kanjiRubyHtml(baseText, reading){
+  const {kanji, okuri}=splitKanjiDisplayForm(baseText);
+
+  // 読みから送り仮名相当を末尾から除き、漢字部分の読みだけにする
+  let rubyReading=reading || "";
+  if(okuri && rubyReading){
+    const okuriHira=okuri;
+    if(rubyReading.endsWith(okuriHira)){
+      rubyReading=rubyReading.slice(0, rubyReading.length-okuriHira.length);
+    }
+  }
+
+  // 読みが空になった場合は全体読みを使う
+  if(!rubyReading) rubyReading=reading || "";
+
+  return `<ruby>${kanji}<rt>${rubyReading}</rt></ruby>${okuri}`;
+}
+
 function showKanjiAnswerThenNext(read){
   if(answerShowing||ended) return;
   const card=sequence[currentIndex];
