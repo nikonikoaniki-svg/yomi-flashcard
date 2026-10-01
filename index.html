@@ -406,27 +406,22 @@
     .sentence-text.vertical{
       writing-mode:vertical-rl;
       text-orientation:upright;
-
-      /* 教科書の縦書きのように上から下へ流す */
       white-space:normal;
       word-break:break-all;
       overflow-wrap:anywhere;
       line-break:strict;
-
-      /* カードの高さを使い切って、足りないときだけ次の列へ */
-      height:100%;
-      max-height:100%;
-      width:auto;
+      height:calc(100% - 8px);
+      max-height:calc(100% - 8px);
+      width:max-content;
       max-width:100%;
-
-      /* 上詰め・全体は中央寄せ */
       margin:0 auto;
-      padding:10px 6px;
+      padding:4px 8px;
       box-sizing:border-box;
-      align-self:stretch;
-
+      align-self:flex-start;
       line-height:1.45;
       overflow:visible;
+      text-align:start !important;
+      text-align-last:start;
     }
 
     .flash-card:has(.sentence-text){
@@ -448,6 +443,11 @@
     .sentence-text ruby.forced-ruby rt{
       font-weight:700;
     }
+
+
+    #readingTypeOptions .pill{min-width:150px}
+    #kanjiGradeOptions .pill,
+    #sentenceGradeOptions .pill{min-width:100px}
 
     .hidden{display:none!important}
 
@@ -473,46 +473,68 @@
 
     <section id="setupScreen" class="screen active">
       <div class="panel">
+
         <div class="section">
-          <h2>① よむものを えらぶ</h2>
+          <h2>① 読みの種類</h2>
+          <div class="inline-options" id="readingTypeOptions">
+            <button type="button" class="pill selected" data-type="kana">ひらがな・カタカナ</button>
+            <button type="button" class="pill" data-type="kanji">漢字</button>
+            <button type="button" class="pill" data-type="sentence">短文</button>
+          </div>
+        </div>
+
+        <div class="section" id="kanaSettings">
+          <h2>② 文字の種類</h2>
           <div class="choice-grid" id="categoryGrid"></div>
-          <p class="setup-note" style="margin-top:8px">ひらがな・カタカナは複数選択できます。漢字を選ぶと、ひらがな・カタカナは自動で外れます。</p>
+          <p class="setup-note" style="margin-top:8px">複数選べます。</p>
+
+          <h2 style="margin-top:16px">③ レベル</h2>
+          <div class="inline-options" id="levelOptions">
+            <button type="button" class="pill" data-level="1">レベル1<br><span style="font-size:12px">1文字</span></button>
+            <button type="button" class="pill" data-level="2">レベル2<br><span style="font-size:12px">2文字</span></button>
+            <button type="button" class="pill selected" data-level="3">レベル3<br><span style="font-size:12px">3文字まで</span></button>
+            <button type="button" class="pill" data-level="4">レベル4<br><span style="font-size:12px">4文字まで</span></button>
+            <button type="button" class="pill" data-level="5">レベル5<br><span style="font-size:12px">5文字まで</span></button>
+          </div>
+          <p class="setup-note" id="levelHelp" style="margin-top:8px">レベル3：3文字のことばを中心に、3文字までのことばが出ます。</p>
+        </div>
+
+        <div class="section hidden" id="kanjiSettings">
+          <h2>② 漢字の学年</h2>
+          <div class="inline-options" id="kanjiGradeOptions">
+            <button type="button" class="pill selected" data-kanji="kanji1">1年生</button>
+            <button type="button" class="pill" data-kanji="kanji2">2年生</button>
+            <button type="button" class="pill" data-kanji="kanji3">3年生</button>
+          </div>
+          <p class="setup-note" style="margin-top:8px">漢字は1つの学年だけ選べます。</p>
+        </div>
+
+        <div class="section hidden" id="sentenceSettings">
+          <h2>② 短文の学年</h2>
+          <div class="inline-options" id="sentenceGradeOptions">
+            <button type="button" class="pill selected" data-grade="grade1">1年生</button>
+            <button type="button" class="pill" data-grade="grade2">2年生</button>
+            <button type="button" class="pill" data-grade="grade3">3年生</button>
+          </div>
+          <div style="margin-top:12px">
+            <strong>ルビ</strong>
+            <div class="inline-options" id="rubyOptions" style="margin-top:6px">
+              <button type="button" class="pill selected" data-ruby="on">あり</button>
+              <button type="button" class="pill" data-ruby="off">なし</button>
+            </div>
+          </div>
         </div>
 
         <div class="section">
-          <h2>② 文字の向き</h2>
+          <h2>④ 文字の向き</h2>
           <div class="inline-options" id="directionOptions">
             <button type="button" class="pill selected" data-dir="horizontal">横書き</button>
             <button type="button" class="pill" data-dir="vertical">縦書き</button>
           </div>
-          
         </div>
 
         <div class="section">
-          <h2>③ 読みモード</h2>
-          <div class="inline-options" id="readingModeOptions">
-            <button type="button" class="pill selected" data-reading-mode="word">単語・漢字</button>
-            <button type="button" class="pill" data-reading-mode="sentence">短文読み</button>
-          </div>
-          <div id="sentenceGradeWrap" class="hidden" style="margin-top:10px">
-            <div class="inline-options" id="sentenceGradeOptions">
-              <button type="button" class="pill selected" data-grade="grade1">1年生</button>
-              <button type="button" class="pill" data-grade="grade2">2年生</button>
-              <button type="button" class="pill" data-grade="grade3">3年生</button>
-            </div>
-            <p class="setup-note" style="margin-top:8px">その学年までに読める漢字を使います。</p>
-            <div style="margin-top:10px">
-              <strong>ルビ</strong>
-              <div class="inline-options" id="rubyOptions" style="margin-top:6px">
-                <button type="button" class="pill selected" data-ruby="on">あり</button>
-                <button type="button" class="pill" data-ruby="off">なし</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="section">
-          <h2>④ チャレンジ方法</h2>
+          <h2>⑤ チャレンジ方法</h2>
           <div class="mode-row">
             <div class="mode-card active" id="questionModeCard">
               <div class="mode-title">問題数をきめる</div>
@@ -523,20 +545,6 @@
               <div class="inline-options" id="timeOptions"></div>
             </div>
           </div>
-        </div>
-
-        <div class="section">
-          <h2>⑤ レベル <span style="font-size:13px;font-weight:700">（ひらがな・カタカナのみ）</span></h2>
-          <div class="inline-options" id="levelOptions">
-            <button type="button" class="pill" data-level="1">レベル1<br><span style="font-size:12px">1文字</span></button>
-            <button type="button" class="pill" data-level="2">レベル2<br><span style="font-size:12px">2文字</span></button>
-            <button type="button" class="pill selected" data-level="3">レベル3<br><span style="font-size:12px">3文字まで</span></button>
-            <button type="button" class="pill" data-level="4">レベル4<br><span style="font-size:12px">4文字まで</span></button>
-            <button type="button" class="pill" data-level="5">レベル5<br><span style="font-size:12px">5文字まで</span></button>
-          </div>
-          <p class="setup-note" id="levelHelp" style="margin-top:8px">
-            レベル3：3文字のことばを中心に、3文字までのことばが出ます。
-          </p>
         </div>
 
         <div class="section">
@@ -555,15 +563,15 @@
               <label id="goalLabel">目標タイム（秒）</label>
               <input type="number" id="goalInput" min="1" value="30">
             </div>
-            <div class="setup-note" id="goalHelp">
-              問題数モードでは、「何秒以内に全部読めるか」を目標にします。
-            </div>
+            <div class="setup-note" id="goalHelp">問題数モードでは、「何秒以内に全部読めるか」を目標にします。</div>
           </div>
         </div>
-<button class="primary" id="startBtn">スタート</button>
+
+        <button class="primary" id="startBtn">スタート</button>
       </div>
     </section>
-<section id="countdownScreen" class="screen">
+
+    <section id="countdownScreen" class="screen">
       <div class="count-num" id="countNum">3</div>
       <div style="font-weight:900;font-size:24px;margin-top:14px">こえに出して よもう！</div>
     </section>
@@ -658,6 +666,8 @@ let readingLevel = 3;
 let maxLength = 3;
 let writingDirection = "horizontal";
 let readingMode = "word";
+let readingType = "kana";
+let selectedKanjiGrade = "kanji1";
 let sentenceGrade = "grade1";
 let sentenceRuby = "on";
 let fontSizeChoice = "medium";
@@ -694,26 +704,10 @@ function shuffle(arr){
   return a;
 }
 function isKanjiCategoryGlobal(k){ return k==="kanji1" || k==="kanji2" || k==="kanji3"; }
-function updateExclusiveSettingsGlobal(){
-  const checks=categoryOrder.map(k=>$("#cat_"+k)).filter(Boolean);
-  const anyKanji=checks.some(c=>c.checked && isKanjiCategoryGlobal(c.value));
-  if(readingMode==="sentence"){
-    checks.forEach(c=>{c.checked=false;c.disabled=true;c.closest(".choice").classList.add("disabled-choice");});
-  }else if(anyKanji){
-    checks.forEach(c=>{
-      if(isKanjiCategoryGlobal(c.value)){c.disabled=false;c.closest(".choice").classList.remove("disabled-choice");}
-      else{c.checked=false;c.disabled=true;c.closest(".choice").classList.add("disabled-choice");}
-    });
-  }else{
-    checks.forEach(c=>{c.disabled=false;c.closest(".choice").classList.remove("disabled-choice");});
-  }
-  const disableLevel=readingMode==="sentence"||anyKanji;
-  [...$("#levelOptions").querySelectorAll("button[data-level]")].forEach(b=>b.disabled=disableLevel);
-}
-
 function buildSetup(){
   const grid=$("#categoryGrid");
-  categoryOrder.forEach((key,idx)=>{
+  const kanaCategories=categoryOrder.filter(k=>!isKanjiCategoryGlobal(k));
+  kanaCategories.forEach((key,idx)=>{
     const wrap=document.createElement("div");
     wrap.className="choice";
     wrap.innerHTML=`<input type="checkbox" id="cat_${key}" value="${key}" ${idx===0?"checked":""}>
@@ -772,50 +766,28 @@ function buildSetup(){
   };
   updateLevelHelp();
 
-  function isKanjiCategory(k){ return k==="kanji1" || k==="kanji2" || k==="kanji3"; }
-
-  function updateExclusiveSettings(){
-    const checks=categoryOrder.map(k=>$("#cat_"+k));
-    const anyKanji=checks.some(c=>c && c.checked && isKanjiCategory(c.value));
-
-    if(readingMode==="sentence"){
-      checks.forEach(c=>{ if(c){ c.checked=false; c.disabled=true; c.closest(".choice").classList.add("disabled-choice"); } });
-    }else if(anyKanji){
-      checks.forEach(c=>{
-        if(!c) return;
-        if(isKanjiCategory(c.value)){
-          c.disabled=false; c.closest(".choice").classList.remove("disabled-choice");
-        }else{
-          c.checked=false; c.disabled=true; c.closest(".choice").classList.add("disabled-choice");
-        }
-      });
-    }else{
-      checks.forEach(c=>{ if(c){ c.disabled=false; c.closest(".choice").classList.remove("disabled-choice"); } });
-    }
-
-    const disableLevel = readingMode==="sentence" || anyKanji;
-    [...$("#levelOptions").querySelectorAll("button[data-level]")].forEach(b=>b.disabled=disableLevel);
+  function updateTypePanels(){
+    $("#kanaSettings").classList.toggle("hidden",readingType!=="kana");
+    $("#kanjiSettings").classList.toggle("hidden",readingType!=="kanji");
+    $("#sentenceSettings").classList.toggle("hidden",readingType!=="sentence");
+    readingMode = readingType==="sentence" ? "sentence" : "word";
   }
 
-  $("#categoryGrid").addEventListener("change",e=>{
-    const c=e.target.closest('input[type="checkbox"]');
-    if(!c) return;
-    if(isKanjiCategory(c.value) && c.checked){
-      categoryOrder.forEach(k=>{
-        const x=$("#cat_"+k);
-        if(x && !isKanjiCategory(k)) x.checked=false;
-      });
-    }
-    updateExclusiveSettings();
-  });
-
-  $("#readingModeOptions").onclick=e=>{
-    const btn=e.target.closest("button[data-reading-mode]");
+  $("#readingTypeOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-type]");
     if(!btn) return;
-    readingMode=btn.dataset.readingMode;
-    [...$("#readingModeOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
-    $("#sentenceGradeWrap").classList.toggle("hidden",readingMode!=="sentence");
-    updateExclusiveSettings();
+    readingType=btn.dataset.type;
+    [...$("#readingTypeOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
+    updateTypePanels();
+  };
+
+  $("#categoryGrid").addEventListener("change",()=>{});
+
+  $("#kanjiGradeOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-kanji]");
+    if(!btn) return;
+    selectedKanjiGrade=btn.dataset.kanji;
+    [...$("#kanjiGradeOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
   };
 
   $("#sentenceGradeOptions").onclick=e=>{
@@ -836,6 +808,8 @@ function buildSetup(){
     fontSizeChoice=btn.dataset.size;
     [...$("#fontSizeOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
   };
+
+  updateTypePanels();
 
   $("#directionOptions").onclick=e=>{
     const btn=e.target.closest("button[data-dir]");
@@ -872,7 +846,14 @@ function setMode(m){
   }
 }
 function getSelectedCategories(){
-  return categoryOrder.filter(k=>$("#cat_"+k).checked);
+  if(readingType==="kanji") return [selectedKanjiGrade];
+  if(readingType==="sentence") return [];
+  return categoryOrder
+    .filter(k=>!isKanjiCategoryGlobal(k))
+    .filter(k=>{
+      const el=$("#cat_"+k);
+      return el && el.checked;
+    });
 }
 function charCount(str){
   return Array.from(str).length;
@@ -881,19 +862,22 @@ function createPool(cats){
   let p=[];
   cats.forEach(k=>DATA[k].items.forEach(item=>{
     const len=charCount(item);
+    const isKanji=isKanjiCategoryGlobal(k);
     let ok=false;
-    if(readingLevel===1){
+
+    if(isKanji){
+      // 漢字は文字レベルの影響を受けない
+      ok=true;
+    }else if(readingLevel===1){
       ok = len===1;
     }else if(readingLevel===2){
       ok = len===2;
     }else{
       ok = len>=2 && len<=readingLevel;
     }
+
     if(ok){
-      if((k==="kanji1" || k==="kanji2" || k==="kanji3") &&
-         (!window.KANJI_READINGS || !window.KANJI_READINGS[item])){
-        return;
-      }
+      if(isKanji && (!window.KANJI_READINGS || !window.KANJI_READINGS[item])) return;
       p.push({text:item,cat:k});
     }
   }));
@@ -986,7 +970,7 @@ function sentenceToHtml(parts){
 function sentencePlain(parts){ return parts.map(p=>p.t).join(""); }
 function startFromSetup(){
   selectedCategories=getSelectedCategories();
-  if(readingMode!=="sentence" && selectedCategories.length===0){
+  if(readingType==="kana" && selectedCategories.length===0){
     alert("読むものを1つ以上えらんでください。");
     return;
   }
@@ -1007,6 +991,8 @@ function startFromSetup(){
     maxLength:readingLevel,
     writingDirection,
     readingMode,
+    readingType,
+    selectedKanjiGrade,
     sentenceGrade,
     sentenceRuby,
     fontSizeChoice,
@@ -1025,7 +1011,7 @@ function startFromSetup(){
     return;
   }
   const needed = gameMode==="questions" ? gameQuestionTarget : Math.max(200,pool.length*3);
-  sequence = readingMode==="sentence" ? takeWithoutRepeat(pool,needed) : buildWeightedSequence(pool,needed);
+  sequence = readingMode==="sentence" ? takeWithoutRepeat(pool,needed) : (readingType==="kanji" ? takeWithoutRepeat(pool,needed) : buildWeightedSequence(pool,needed));
 
   currentIndex=0; readCount=0; skipped=0; ended=false;
   doCountdown();
@@ -1281,26 +1267,47 @@ function renderRanking(setup){
 }
 function restoreSetup(setup){
   if(!setup) return;
-  mode=setup.mode; questionTarget=setup.questionTarget; timeTarget=setup.timeTarget; readingLevel=setup.readingLevel || setup.maxLength || 3; maxLength=readingLevel; writingDirection=setup.writingDirection || "horizontal"; readingMode=setup.readingMode || "word"; sentenceGrade=setup.sentenceGrade || "grade1"; sentenceRuby=setup.sentenceRuby || "on"; fontSizeChoice=setup.fontSizeChoice || "medium";
+  mode=setup.mode;
+  questionTarget=setup.questionTarget;
+  timeTarget=setup.timeTarget;
+  readingLevel=setup.readingLevel || setup.maxLength || 3;
+  maxLength=readingLevel;
+  writingDirection=setup.writingDirection || "horizontal";
+  readingMode=setup.readingMode || "word";
+  readingType=setup.readingType || (readingMode==="sentence" ? "sentence" : ((setup.selectedCategories||[]).some(isKanjiCategoryGlobal) ? "kanji" : "kana"));
+  selectedKanjiGrade=setup.selectedKanjiGrade || ((setup.selectedCategories||[]).find(isKanjiCategoryGlobal)) || "kanji1";
+  sentenceGrade=setup.sentenceGrade || "grade1";
+  sentenceRuby=setup.sentenceRuby || "on";
+  fontSizeChoice=setup.fontSizeChoice || "medium";
+
   setMode(mode);
-  categoryOrder.forEach(k=>$("#cat_"+k).checked=setup.selectedCategories.includes(k));
+
+  categoryOrder.filter(k=>!isKanjiCategoryGlobal(k)).forEach(k=>{
+    const el=$("#cat_"+k);
+    if(el) el.checked=(setup.selectedCategories||[]).includes(k);
+  });
+
+  [...$("#readingTypeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.type===readingType));
+  $("#kanaSettings").classList.toggle("hidden",readingType!=="kana");
+  $("#kanjiSettings").classList.toggle("hidden",readingType!=="kanji");
+  $("#sentenceSettings").classList.toggle("hidden",readingType!=="sentence");
+
+  [...$("#kanjiGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.kanji===selectedKanjiGrade));
+  [...$("#sentenceGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.grade===sentenceGrade));
+  [...$("#rubyOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.ruby===sentenceRuby));
+
   [...$("#questionOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===questionTarget));
   [...$("#timeOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===timeTarget));
-  [...$("#levelOptions").children].forEach(b=>{
-    b.classList.toggle("selected",Number(b.dataset.level)===readingLevel);
-  });
+  [...$("#levelOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.level)===readingLevel));
+
   $("#levelHelp").textContent = readingLevel===1
     ? "レベル1：1文字だけを出します。"
     : readingLevel===2
       ? "レベル2：2文字のことばだけを出します。"
       : `レベル${readingLevel}：${readingLevel}文字のことばを80％以上、残りは短いことばから出します。`;
+
   [...$("#directionOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.dir===writingDirection));
-  [...$("#readingModeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.readingMode===readingMode));
-  $("#sentenceGradeWrap").classList.toggle("hidden",readingMode!=="sentence");
-  [...$("#sentenceGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.grade===sentenceGrade));
-  [...$("#rubyOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.ruby===sentenceRuby));
   [...$("#fontSizeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.size===fontSizeChoice));
-  updateExclusiveSettingsGlobal();
   $("#goalInput").value=setup.goal;
 }
 function goSetup(){
