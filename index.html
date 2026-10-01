@@ -852,7 +852,7 @@ function getSelectedCategories(){
     .filter(k=>!isKanjiCategoryGlobal(k))
     .filter(k=>{
       const el=$("#cat_"+k);
-      return el && el.checked;
+      return !!(el && el.checked);
     });
 }
 function charCount(str){
@@ -969,9 +969,10 @@ function sentenceToHtml(parts){
 }
 function sentencePlain(parts){ return parts.map(p=>p.t).join(""); }
 function startFromSetup(){
+  readingMode = readingType==="sentence" ? "sentence" : "word";
   selectedCategories=getSelectedCategories();
   if(readingType==="kana" && selectedCategories.length===0){
-    alert("読むものを1つ以上えらんでください。");
+    alert("ひらがな・カタカナの種類を1つ以上えらんでください。");
     return;
   }
   const goal=Math.max(1,Number($("#goalInput").value)||1);
@@ -1267,15 +1268,16 @@ function renderRanking(setup){
 }
 function restoreSetup(setup){
   if(!setup) return;
-  mode=setup.mode;
-  questionTarget=setup.questionTarget;
-  timeTarget=setup.timeTarget;
+
+  mode=setup.mode || "questions";
+  questionTarget=setup.questionTarget || 10;
+  timeTarget=setup.timeTarget || 60;
   readingLevel=setup.readingLevel || setup.maxLength || 3;
   maxLength=readingLevel;
   writingDirection=setup.writingDirection || "horizontal";
-  readingMode=setup.readingMode || "word";
-  readingType=setup.readingType || (readingMode==="sentence" ? "sentence" : ((setup.selectedCategories||[]).some(isKanjiCategoryGlobal) ? "kanji" : "kana"));
-  selectedKanjiGrade=setup.selectedKanjiGrade || ((setup.selectedCategories||[]).find(isKanjiCategoryGlobal)) || "kanji1";
+  readingType=setup.readingType || ((setup.readingMode==="sentence") ? "sentence" : (((setup.selectedCategories||[]).some(isKanjiCategoryGlobal)) ? "kanji" : "kana"));
+  readingMode=readingType==="sentence" ? "sentence" : "word";
+  selectedKanjiGrade=setup.selectedKanjiGrade || (setup.selectedCategories||[]).find(isKanjiCategoryGlobal) || "kanji1";
   sentenceGrade=setup.sentenceGrade || "grade1";
   sentenceRuby=setup.sentenceRuby || "on";
   fontSizeChoice=setup.fontSizeChoice || "medium";
@@ -1288,14 +1290,13 @@ function restoreSetup(setup){
   });
 
   [...$("#readingTypeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.type===readingType));
-  $("#kanaSettings").classList.toggle("hidden",readingType!=="kana");
-  $("#kanjiSettings").classList.toggle("hidden",readingType!=="kanji");
-  $("#sentenceSettings").classList.toggle("hidden",readingType!=="sentence");
+  updateTypePanels();
 
   [...$("#kanjiGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.kanji===selectedKanjiGrade));
   [...$("#sentenceGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.grade===sentenceGrade));
   [...$("#rubyOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.ruby===sentenceRuby));
-
+  [...$("#fontSizeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.size===fontSizeChoice));
+  [...$("#directionOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.dir===writingDirection));
   [...$("#questionOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===questionTarget));
   [...$("#timeOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===timeTarget));
   [...$("#levelOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.level)===readingLevel));
@@ -1306,9 +1307,7 @@ function restoreSetup(setup){
       ? "レベル2：2文字のことばだけを出します。"
       : `レベル${readingLevel}：${readingLevel}文字のことばを80％以上、残りは短いことばから出します。`;
 
-  [...$("#directionOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.dir===writingDirection));
-  [...$("#fontSizeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.size===fontSizeChoice));
-  $("#goalInput").value=setup.goal;
+  $("#goalInput").value=setup.goal || 30;
 }
 function goSetup(){
   clearInterval(timerId); ended=true;
@@ -1321,6 +1320,7 @@ function retry(){
 }
 
 buildSetup();
+updateTypePanels();
 showScreen("setupScreen");
 
 $("#startBtn").onclick=startFromSetup;
