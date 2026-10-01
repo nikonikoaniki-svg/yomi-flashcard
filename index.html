@@ -523,6 +523,14 @@
               <button type="button" class="pill" data-ruby="off">なし</button>
             </div>
           </div>
+          <div style="margin-top:12px">
+            <strong>分かち書き</strong>
+            <div class="inline-options" id="wakachiOptions" style="margin-top:6px">
+              <button type="button" class="pill selected" data-wakachi="on">あり</button>
+              <button type="button" class="pill" data-wakachi="off">なし</button>
+            </div>
+            <p class="setup-note" style="margin-top:6px">「あり」は、ことばの間にスペースを入れて表示します。</p>
+          </div>
         </div>
 
         <div class="section">
@@ -555,19 +563,21 @@
             <button type="button" class="pill" data-size="large">大</button>
           </div>
         </div>
+<button class="primary" id="startBtn">スタート</button>
+      </div>
+    </section>
 
-        <div class="section">
-          <h2>⑦ じぶんの目標</h2>
-          <div class="goal-row">
-            <div>
-              <label id="goalLabel">目標タイム（秒）</label>
-              <input type="number" id="goalInput" min="1" value="30">
-            </div>
-            <div class="setup-note" id="goalHelp">問題数モードでは、「何秒以内に全部読めるか」を目標にします。</div>
+    <section id="portraitNoticeScreen" class="screen">
+      <div class="panel" style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center">
+        <div style="max-width:560px">
+          <div style="font-size:clamp(32px,5vw,56px);font-weight:900;line-height:1.5">
+            タブレットを<br>縦にしてください
           </div>
+          <p id="portraitStatus" class="setup-note" style="font-size:18px;margin:20px 0">
+            画面が縦向きになるとスタートできます。
+          </p>
+          <button class="primary" id="portraitReadyBtn" disabled>縦になりました　スタート</button>
         </div>
-
-        <button class="primary" id="startBtn">スタート</button>
       </div>
     </section>
 
@@ -670,6 +680,7 @@ let readingType = "kana";
 let selectedKanjiGrade = "kanji1";
 let sentenceGrade = "grade1";
 let sentenceRuby = "on";
+let sentenceWakachi = "on";
 let fontSizeChoice = "medium";
 let selectedCategories = ["seion"];
 let pool = [];
@@ -689,11 +700,11 @@ let gameQuestionTarget = 10;
 let gameTimeTarget = 60;
 
 const $ = s => document.querySelector(s);
-const screens = ["setupScreen","countdownScreen","gameScreen","resultScreen"];
+const screens = ["setupScreen","portraitNoticeScreen","countdownScreen","gameScreen","resultScreen"];
 
 function showScreen(id){
   screens.forEach(s=>$("#"+s).classList.toggle("active",s===id));
-  $("#homeBtn").style.visibility = (id==="setupScreen" || id==="countdownScreen") ? "hidden":"visible";
+  $("#homeBtn").style.visibility = (id==="setupScreen" || id==="portraitNoticeScreen" || id==="countdownScreen") ? "hidden":"visible";
 }
 function shuffle(arr){
   const a=[...arr];
@@ -809,6 +820,13 @@ function buildSetup(){
     [...$("#rubyOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
   };
 
+  $("#wakachiOptions").onclick=e=>{
+    const btn=e.target.closest("button[data-wakachi]");
+    if(!btn) return;
+    sentenceWakachi=btn.dataset.wakachi;
+    [...$("#wakachiOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
+  };
+
   $("#fontSizeOptions").onclick=e=>{
     const btn=e.target.closest("button[data-size]"); if(!btn) return;
     fontSizeChoice=btn.dataset.size;
@@ -839,16 +857,6 @@ function setMode(m){
   mode=m;
   $("#questionModeCard").classList.toggle("active",m==="questions");
   $("#timeModeCard").classList.toggle("active",m==="time");
-  if(m==="questions"){
-    $("#goalLabel").textContent="目標タイム（秒）";
-    $("#goalInput").value = $("#goalInput").dataset.qgoal || "30";
-    $("#goalHelp").textContent="問題数モードでは、「何秒以内に全部読めるか」を目標にします。";
-  }else{
-    $("#goalInput").dataset.qgoal=$("#goalInput").value;
-    $("#goalLabel").textContent="目標問題数（問）";
-    $("#goalInput").value = $("#goalInput").dataset.tgoal || "20";
-    $("#goalHelp").textContent="時間モードでは、「制限時間内に何問読めるか」を目標にします。";
-  }
 }
 function getSelectedCategories(){
   if(readingType==="kanji") return [selectedKanjiGrade];
@@ -962,14 +970,15 @@ function processTextWithGradeRuby(text, forceAll=false){
 
 function sentenceToHtml(parts){
   return parts.map(p=>{
-    // 「ルビあり」では、既存の語単位の読みがあればそのまま使う
+    const rawText = sentenceWakachi==="on" ? p.t : p.t.replace(/[ 　]+/g,"");
+
+    // ルビあり：語単位の読みがある場合はそのまま使用
     if(sentenceRuby==="on" && p.r){
-      return `<ruby>${p.t}<rt>${p.r}</rt></ruby>`;
+      return `<ruby>${rawText}<rt>${p.r}</rt></ruby>`;
     }
 
-    // 「ルビなし」でも、当該学年より上の漢字には必ずルビを付ける
-    // また、ルビありで語単位データがない部分は漢字ごとに付ける
-    return processTextWithGradeRuby(p.t, sentenceRuby==="on");
+    // ルビなしでも学年外漢字は強制ルビ
+    return processTextWithGradeRuby(rawText, sentenceRuby==="on");
   }).join("");
 }
 function sentencePlain(parts){ return parts.map(p=>p.t).join(""); }
@@ -980,11 +989,8 @@ function startFromSetup(){
     alert("ひらがな・カタカナの種類を1つ以上えらんでください。");
     return;
   }
-  const goal=Math.max(1,Number($("#goalInput").value)||1);
-  if(mode==="time") $("#goalInput").dataset.tgoal=goal;
-  else $("#goalInput").dataset.qgoal=goal;
-
-  // このチャレンジ中は設定を固定する
+  const goal=0;
+// このチャレンジ中は設定を固定する
   gameMode = mode;
   gameQuestionTarget = questionTarget;
   gameTimeTarget = timeTarget;
@@ -1001,9 +1007,9 @@ function startFromSetup(){
     selectedKanjiGrade,
     sentenceGrade,
     sentenceRuby,
+    sentenceWakachi,
     fontSizeChoice,
-    selectedCategories:[...selectedCategories],
-    goal
+    selectedCategories:[...selectedCategories]
   };
 
   if(readingMode==="sentence"){
@@ -1020,8 +1026,33 @@ function startFromSetup(){
   sequence = readingMode==="sentence" ? takeWithoutRepeat(pool,needed) : (readingType==="kanji" ? takeWithoutRepeat(pool,needed) : buildWeightedSequence(pool,needed));
 
   currentIndex=0; readCount=0; skipped=0; ended=false;
-  doCountdown();
+  if(writingDirection==="vertical"){
+    showPortraitNotice();
+  }else{
+    doCountdown();
+  }
 }
+function isPortraitOrientation(){
+  return window.innerHeight > window.innerWidth;
+}
+
+function updatePortraitReadyState(){
+  const btn=$("#portraitReadyBtn");
+  const status=$("#portraitStatus");
+  if(!btn || !status) return;
+
+  const portrait=isPortraitOrientation();
+  btn.disabled=!portrait;
+  status.textContent = portrait
+    ? "縦向きになりました。スタートできます。"
+    : "画面が縦向きになるとスタートできます。";
+}
+
+function showPortraitNotice(){
+  showScreen("portraitNoticeScreen");
+  updatePortraitReadyState();
+}
+
 function doCountdown(){
   clearInterval(timerId);
   showScreen("countdownScreen");
@@ -1174,22 +1205,18 @@ function endGame(){
   clearInterval(timerId);
   const e=Math.min(elapsedSec(), gameMode==="time" ? gameTimeTarget : 99999);
 
-  let goalMet, goalRatio, scoreText, metaText, primaryScore;
+  let scoreText, metaText, primaryScore;
   if(gameMode==="questions"){
-    goalMet=e<=lastSetup.goal;
-    goalRatio=lastSetup.goal/e;
-    scoreText=`${readCount}問`;
+scoreText=`${readCount}問`;
     metaText=`${gameQuestionTarget}問中 ${readCount}問読めた ／ ${e.toFixed(1)}秒 ／ とばした問題 ${skipped}問`;
     primaryScore = e;
   }else{
-    goalMet=readCount>=lastSetup.goal;
-    goalRatio=readCount/lastSetup.goal;
-    scoreText=`${readCount}問`;
+scoreText=`${readCount}問`;
     metaText=`${formatTime(gameTimeTarget)}で ${readCount}問読めた ／ とばした問題 ${skipped}問`;
     primaryScore = readCount;
   }
 
-  const result={mode:gameMode,readCount,skipped,elapsed:e,goalMet,goalRatio,primaryScore,date:new Date().toISOString(),setup:lastSetup};
+  const result={mode:gameMode,readCount,skipped,elapsed:e,primaryScore,date:new Date().toISOString(),setup:lastSetup};
   saveRank(result);
   showResult(result);
 }
@@ -1220,7 +1247,7 @@ function showResult(result){
 
   const cats=result.setup.selectedCategories.map(k=>DATA[k].label).join("・");
   $("#resultDetail").innerHTML = result.setup.readingMode==="sentence"
-    ? `読みモード：短文（${({grade1:"1年生",grade2:"2年生",grade3:"3年生"})[result.setup.sentenceGrade]}）<br>ルビ：${result.setup.sentenceRuby==="on"?"あり":"なし"}<br>文字サイズ：${({small:"小",medium:"中",large:"大"})[result.setup.fontSizeChoice]}<br>とばした問題：${result.skipped}問`
+    ? `読みモード：短文（${({grade1:"1年生",grade2:"2年生",grade3:"3年生"})[result.setup.sentenceGrade]}）<br>ルビ：${result.setup.sentenceRuby==="on"?"あり":"なし"}<br>分かち書き：${result.setup.sentenceWakachi==="on"?"あり":"なし"}<br>文字サイズ：${({small:"小",medium:"中",large:"大"})[result.setup.fontSizeChoice]}<br>とばした問題：${result.skipped}問`
     : `読むもの：${cats}<br>レベル：${result.setup.readingLevel}<br>文字の向き：${result.setup.writingDirection==="vertical" ? "縦書き" : "横書き"}<br>とばした問題：${result.skipped}問`;
   renderRanking(result.setup);
 }
@@ -1285,6 +1312,7 @@ function restoreSetup(setup){
   selectedKanjiGrade=setup.selectedKanjiGrade || (setup.selectedCategories||[]).find(isKanjiCategoryGlobal) || "kanji1";
   sentenceGrade=setup.sentenceGrade || "grade1";
   sentenceRuby=setup.sentenceRuby || "on";
+  sentenceWakachi=setup.sentenceWakachi || "on";
   fontSizeChoice=setup.fontSizeChoice || "medium";
 
   setMode(mode);
@@ -1300,6 +1328,7 @@ function restoreSetup(setup){
   [...$("#kanjiGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.kanji===selectedKanjiGrade));
   [...$("#sentenceGradeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.grade===sentenceGrade));
   [...$("#rubyOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.ruby===sentenceRuby));
+  [...$("#wakachiOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.wakachi===sentenceWakachi));
   [...$("#fontSizeOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.size===fontSizeChoice));
   [...$("#directionOptions").children].forEach(b=>b.classList.toggle("selected",b.dataset.dir===writingDirection));
   [...$("#questionOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===questionTarget));
@@ -1311,8 +1340,6 @@ function restoreSetup(setup){
     : readingLevel===2
       ? "レベル2：2文字のことばだけを出します。"
       : `レベル${readingLevel}：${readingLevel}文字のことばを80％以上、残りは短いことばから出します。`;
-
-  $("#goalInput").value=setup.goal || 30;
 }
 function goSetup(){
   clearInterval(timerId); ended=true;
@@ -1329,6 +1356,20 @@ updateTypePanels();
 showScreen("setupScreen");
 
 $("#startBtn").onclick=startFromSetup;
+$("#portraitReadyBtn").onclick=()=>{
+  if(!isPortraitOrientation()){
+    updatePortraitReadyState();
+    return;
+  }
+  doCountdown();
+};
+window.addEventListener("resize",()=>{
+  updatePortraitReadyState();
+  if($("#gameScreen").classList.contains("active")) fitFlashText();
+});
+window.addEventListener("orientationchange",()=>{
+  setTimeout(updatePortraitReadyState,150);
+});
 $("#startBtn").addEventListener("click",e=>{
   // onclick がブラウザ側で無効化された場合の保険。
   // 同一イベントで二重実行しないよう onclick が存在する場合は何もしない。
@@ -1345,7 +1386,6 @@ $("#clearRankBtn").onclick=()=>{
     renderRanking(lastSetup);
   }
 };
-window.addEventListener("resize",()=>{ if($("#gameScreen").classList.contains("active")) fitFlashText(); });
 document.addEventListener("keydown",e=>{
   if(!$("#gameScreen").classList.contains("active")) return;
   if((e.code==="Space" || e.code==="Enter") && !e.repeat){
