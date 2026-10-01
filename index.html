@@ -440,9 +440,6 @@
       margin-left:auto;
       margin-right:auto;
     }
-    .sentence-text ruby.forced-ruby rt{
-      font-weight:700;
-    }
 
 
     #readingTypeOptions .pill{min-width:150px}
@@ -530,6 +527,7 @@
               <button type="button" class="pill" data-wakachi="off">なし</button>
             </div>
             <p class="setup-note" style="margin-top:6px">「あり」は、ことばの間にスペースを入れて表示します。</p>
+            <p class="setup-note" style="margin-top:6px">学年外の漢字は、習っている漢字を残して、未習部分だけひらがなで表示します。</p>
           </div>
         </div>
 
@@ -626,7 +624,7 @@
           <div class="title-badge" id="titleBadge">よみチャレンジャー</div>
           <div class="big-score" id="resultScore">10問</div>
           <div class="result-meta" id="resultMeta">20.4秒</div>
-          <div class="goal-result goal-ok" id="goalResult">目標クリア！</div>
+          
           <div id="resultDetail" class="setup-note"></div>
 
           <div class="result-buttons" style="margin-top:16px">
@@ -654,6 +652,8 @@ const GRADE_KANJI = {
   grade3: new Set(["一", "七", "三", "上", "下", "世", "中", "丸", "主", "乗", "九", "事", "二", "五", "交", "京", "人", "今", "仕", "他", "休", "会", "住", "何", "作", "使", "係", "元", "兄", "先", "光", "入", "全", "八", "公", "六", "具", "円", "写", "出", "切", "前", "力", "助", "勝", "化", "区", "医", "十", "千", "午", "原", "去", "取", "受", "口", "古", "右", "号", "合", "名", "向", "君", "員", "商", "四", "回", "図", "国", "園", "土", "場", "声", "夏", "夕", "外", "多", "大", "天", "太", "央", "女", "姉", "始", "委", "子", "字", "学", "守", "安", "実", "客", "室", "宮", "家", "宿", "寒", "寺", "対", "小", "少", "局", "屋", "山", "岩", "岸", "川", "州", "工", "左", "市", "帰", "年", "幸", "広", "庫", "式", "弓", "引", "弱", "強", "形", "後", "心", "思", "急", "息", "悪", "意", "感", "戸", "所", "手", "才", "打", "拾", "持", "指", "教", "数", "整", "文", "新", "族", "日", "早", "昔", "星", "春", "時", "晴", "暑", "暗", "曲", "書", "月", "期", "木", "本", "村", "林", "校", "根", "森", "植", "業", "楽", "横", "橋", "次", "歌", "止", "正", "歯", "気", "水", "決", "汽", "泳", "海", "消", "深", "温", "港", "湖", "漢", "火", "牛", "犬", "玉", "王", "球", "生", "田", "申", "男", "町", "画", "界", "白", "百", "皿", "目", "相", "県", "真", "矢", "石", "研", "社", "神", "祭", "秋", "科", "究", "空", "立", "竹", "算", "糸", "紙", "級", "細", "終", "組", "絵", "線", "羽", "習", "考", "者", "耳", "育", "自", "船", "色", "花", "苦", "草", "荷", "虫", "血", "行", "西", "見", "親", "角", "言", "計", "記", "詩", "語", "谷", "貝", "赤", "走", "起", "足", "身", "車", "軽", "近", "送", "速", "週", "進", "運", "遠", "重", "金", "銀", "開", "間", "院", "階", "集", "雨", "雪", "雲", "青", "音", "顔", "食", "飲", "館", "首", "駅", "高", "魚", "黄", "黒"])
 };
 const KANJI_CHAR_READINGS = {"一": "いち", "右": "みぎ", "雨": "あめ", "円": "えん", "王": "おう", "音": "おと", "下": "した", "火": "ひ", "花": "はな", "貝": "かい", "学": "がく", "気": "き", "九": "きゅう", "休": "やすむ", "玉": "たま", "金": "かね", "空": "そら", "月": "つき", "犬": "いぬ", "見": "み", "五": "ご", "口": "くち", "校": "こう", "左": "ひだり", "三": "さん", "山": "やま", "子": "こ", "四": "よん", "糸": "いと", "字": "じ", "耳": "みみ", "七": "なな", "車": "くるま", "手": "て", "十": "じゅう", "出": "でる", "女": "おんな", "小": "しょう", "上": "うえ", "森": "もり", "人": "ひと", "水": "みず", "正": "せい", "生": "せい", "青": "あお", "夕": "ゆう", "石": "いし", "赤": "あか", "千": "せん", "川": "かわ", "先": "さき", "早": "はやい", "草": "くさ", "足": "あし", "村": "むら", "大": "おおきい", "男": "おとこ", "竹": "たけ", "中": "なか", "虫": "むし", "町": "まち", "天": "てん", "田": "た", "土": "つち", "二": "に", "日": "ひ", "入": "はいる", "年": "ねん", "白": "しろ", "八": "はち", "百": "ひゃく", "文": "ぶん", "木": "き", "本": "ほん", "名": "な", "目": "め", "立": "たつ", "力": "ちから", "林": "はやし", "六": "ろく", "引": "ひく", "羽": "はね", "雲": "くも", "園": "えん", "遠": "とおい", "何": "なに", "科": "か", "夏": "なつ", "家": "いえ", "歌": "うた", "画": "が", "回": "かい", "会": "あう", "海": "うみ", "絵": "え", "外": "そと", "角": "かど", "楽": "たのしい", "間": "あいだ", "丸": "まる", "岩": "いわ", "顔": "かお", "汽": "き", "記": "き", "帰": "かえ", "弓": "ゆみ", "牛": "うし", "魚": "さかな", "京": "きょう", "強": "つよい", "教": "おしえる", "近": "ちかい", "兄": "あに", "形": "かたち", "計": "はかる", "元": "もと", "言": "いう", "原": "はら", "戸": "と", "古": "ふるい", "午": "ご", "後": "あと", "語": "ご", "工": "こう", "公": "こう", "広": "ひろい", "交": "こう", "光": "ひかり", "考": "かんがえる", "行": "い", "高": "たかい", "黄": "き", "合": "あう", "谷": "たに", "国": "くに", "黒": "くろ", "今": "いま", "才": "さい", "細": "ほそい", "作": "つくる", "算": "さん", "止": "とまる", "市": "し", "矢": "や", "姉": "あね", "思": "おもう", "紙": "かみ", "寺": "てら", "自": "じ", "時": "とき", "室": "しつ", "社": "しゃ", "弱": "よわい", "首": "くび", "秋": "あき", "週": "しゅう", "春": "はる", "書": "か", "少": "すくない", "場": "ば", "色": "いろ", "食": "た", "心": "こころ", "新": "あたらしい", "親": "おや", "図": "ず", "数": "かず", "西": "にし", "声": "こえ", "星": "ほし", "晴": "はれる", "切": "きる", "雪": "ゆき", "船": "ふね", "線": "せん", "前": "まえ", "組": "くみ", "走": "はしる", "多": "おおい", "太": "ふとい", "悪": "わるい", "安": "やすい", "暗": "くらい", "医": "い", "委": "い", "意": "い", "育": "そだつ", "員": "いん", "院": "いん", "飲": "のむ", "運": "はこぶ", "泳": "およぐ", "駅": "えき", "央": "おう", "横": "よこ", "屋": "や", "温": "あたたかい", "化": "か", "荷": "に", "界": "かい", "開": "ひらく", "階": "かい", "寒": "さむい", "感": "かん", "漢": "かん", "館": "かん", "岸": "きし", "起": "おきる", "期": "き", "客": "きゃく", "究": "きゅう", "急": "いそぐ", "級": "きゅう", "宮": "みや", "球": "たま", "去": "さる", "橋": "はし", "業": "ぎょう", "曲": "きょく", "局": "きょく", "銀": "ぎん", "区": "く", "苦": "くるしい", "具": "ぐ", "君": "きみ", "係": "かかり", "軽": "かるい", "血": "ち", "決": "きめる", "研": "けん", "県": "けん", "庫": "こ", "湖": "みずうみ", "向": "むく", "幸": "しあわせ", "港": "みなと", "号": "ごう", "根": "ね", "祭": "まつり", "皿": "さら", "仕": "し", "使": "つか", "始": "はじ", "指": "ゆび", "歯": "は", "詩": "し", "次": "つぎ", "事": "こと", "持": "も", "式": "しき", "実": "み", "写": "うつす", "者": "もの", "主": "ぬし", "守": "まもる", "取": "とる", "受": "うける", "州": "しゅう", "拾": "ひろう", "終": "お", "習": "なら", "集": "あつ", "住": "す", "重": "おも", "宿": "やど", "所": "ところ", "暑": "あつ", "助": "たす", "消": "けす", "商": "しょう", "勝": "か", "乗": "の", "植": "う", "申": "もうす", "身": "み", "神": "かみ", "真": "ま", "深": "ふかい", "進": "すす", "世": "よ", "整": "ととのえる", "昔": "むかし", "全": "ぜん", "相": "あい", "送": "おく", "息": "いき", "速": "はやい", "族": "ぞく", "他": "ほか", "打": "うつ", "対": "たい", "物": "もの", "友": "とも", "達": "たち", "曜": "よう", "買": "か", "読": "よ", "話": "はな", "歩": "ある", "来": "く", "聞": "き", "鳴": "な", "待": "ま", "着": "き", "調": "しら", "庭": "にわ", "鉄": "てつ", "転": "ころ", "都": "みやこ", "投": "な", "島": "しま", "登": "のぼ", "動": "うご", "農": "のう", "配": "くば", "箱": "はこ", "畑": "はたけ", "発": "はつ", "反": "はん", "坂": "さか", "板": "いた", "悲": "かな", "美": "うつく", "鼻": "はな", "筆": "ふで", "氷": "こおり", "表": "おもて", "病": "びょう", "品": "しな", "負": "ま", "部": "ぶ", "服": "ふく", "福": "ふく", "返": "かえ", "勉": "べん", "放": "はな", "味": "あじ", "命": "いのち", "面": "めん", "問": "と", "役": "やく", "薬": "くすり", "由": "ゆ", "油": "あぶら", "有": "ゆう", "遊": "あそ", "予": "よ", "羊": "ひつじ", "洋": "よう", "葉": "は", "陽": "よう", "様": "よう", "落": "お", "流": "なが", "旅": "たび", "両": "りょう", "緑": "みどり", "礼": "れい", "列": "れつ", "練": "れん", "路": "みち", "和": "わ"};
+const PARTIAL_KANA_WORDS = {"虫歯": {"grade1": "虫ば", "grade2": "虫ば"}, "図書館": {"grade1": "図書かん", "grade2": "図書かん"}, "病院": {"grade1": "びょういん", "grade2": "びょう院"}, "植物": {"grade1": "しょくぶつ", "grade2": "しょくぶつ"}, "旅行": {"grade1": "りょこう", "grade2": "りょ行"}, "練習": {"grade1": "れんしゅう", "grade2": "れん習"}, "宿題": {"grade1": "しゅくだい", "grade2": "宿だい"}, "自転車": {"grade1": "じてん車", "grade2": "自転車"}, "夕方": {"grade1": "夕ほう", "grade2": "夕方"}, "地図": {"grade1": "ちず", "grade2": "地図"}, "物語": {"grade1": "ものがたり", "grade2": "もの語"}, "漢字": {"grade1": "かん字", "grade2": "かん字"}, "登校": {"grade1": "とう校", "grade2": "とう校"}, "薬": {"grade1": "くすり", "grade2": "くすり"}};
+
 
 if(!DATA){
   document.body.innerHTML = '<div style="font-family:sans-serif;padding:24px"><h2>辞書ファイルを読み込めませんでした</h2><p>index.html と dictionary.js を同じフォルダに置いてください。</p></div>';
@@ -950,35 +950,95 @@ function isKanjiChar(ch){
   return /^[一-龯々〆ヵヶ]$/.test(ch);
 }
 
-function rubyCharIfNeeded(ch, forceAll=false){
-  if(!isKanjiChar(ch)) return ch;
-
-  const allowed = GRADE_KANJI[sentenceGrade] || new Set();
-  const aboveGrade = !allowed.has(ch);
-  const shouldRuby = forceAll || aboveGrade;
-
-  if(!shouldRuby) return ch;
-
-  const reading = KANJI_CHAR_READINGS[ch];
-  if(!reading) return ch;
-  return `<ruby class="${aboveGrade ? "forced-ruby" : ""}">${ch}<rt>${reading}</rt></ruby>`;
+function containsAboveGradeKanji(textValue){
+  const allowed=GRADE_KANJI[sentenceGrade] || new Set();
+  return [...textValue].some(ch=>isKanjiChar(ch) && !allowed.has(ch));
 }
 
-function processTextWithGradeRuby(text, forceAll=false){
-  return [...text].map(ch=>rubyCharIfNeeded(ch,forceAll)).join("");
+function getPartialKanaWord(textValue, reading){
+  // 文脈で読みが変わる語は明示データを優先
+  const special=PARTIAL_KANA_WORDS[textValue];
+  if(special && special[sentenceGrade]){
+    return special[sentenceGrade];
+  }
+
+  const allowed=GRADE_KANJI[sentenceGrade] || new Set();
+  const chars=[...textValue];
+
+  // 1文字語なら、その漢字だけひらがな化
+  if(chars.length===1 && isKanjiChar(chars[0]) && !allowed.has(chars[0])){
+    return reading || KANJI_CHAR_READINGS[chars[0]] || chars[0];
+  }
+
+  // 読みがない場合は文字単位で置換
+  if(!reading){
+    return chars.map(ch=>{
+      if(!isKanjiChar(ch) || allowed.has(ch)) return ch;
+      return KANJI_CHAR_READINGS[ch] || ch;
+    }).join("");
+  }
+
+  // 既習漢字が語頭に連続している場合、その読みを読み文字列の先頭から除き、
+  // 残りを未習部分のかなとして使う。
+  // 例：虫歯 / むしば → 虫 + ば
+  let prefixText="";
+  let prefixReading="";
+  let prefixCount=0;
+
+  for(const ch of chars){
+    if(!isKanjiChar(ch) || !allowed.has(ch)) break;
+    const r=KANJI_CHAR_READINGS[ch];
+    if(!r) break;
+    prefixText+=ch;
+    prefixReading+=r;
+    prefixCount++;
+  }
+
+  if(prefixCount>0 && reading.startsWith(prefixReading)){
+    const rest=reading.slice(prefixReading.length);
+    return prefixText + rest;
+  }
+
+  // 既習漢字が語末に連続している場合も同様に処理
+  let suffixText="";
+  let suffixReading="";
+  let suffixCount=0;
+
+  for(let i=chars.length-1;i>=0;i--){
+    const ch=chars[i];
+    if(!isKanjiChar(ch) || !allowed.has(ch)) break;
+    const r=KANJI_CHAR_READINGS[ch];
+    if(!r) break;
+    suffixText=ch+suffixText;
+    suffixReading=r+suffixReading;
+    suffixCount++;
+  }
+
+  if(suffixCount>0 && reading.endsWith(suffixReading)){
+    const rest=reading.slice(0, reading.length-suffixReading.length);
+    return rest + suffixText;
+  }
+
+  // 安全策：文脈読みを誤って作らないよう、分解できない語は語全体をひらがな化
+  return reading;
 }
 
 function sentenceToHtml(parts){
   return parts.map(p=>{
-    const rawText = sentenceWakachi==="on" ? p.t : p.t.replace(/[ 　]+/g,"");
+    let rawText = sentenceWakachi==="on" ? p.t : p.t.replace(/[ 　]+/g,"");
 
-    // ルビあり：語単位の読みがある場合はそのまま使用
+    // 学年外漢字を含む語は、既習漢字をできるだけ残し、
+    // 未習部分だけひらがなにする。
+    if(containsAboveGradeKanji(rawText)){
+      return getPartialKanaWord(rawText, p.r || "");
+    }
+
+    // 学年内の漢字はルビ設定だけで判断
     if(sentenceRuby==="on" && p.r){
       return `<ruby>${rawText}<rt>${p.r}</rt></ruby>`;
     }
 
-    // ルビなしでも学年外漢字は強制ルビ
-    return processTextWithGradeRuby(rawText, sentenceRuby==="on");
+    return rawText;
   }).join("");
 }
 function sentencePlain(parts){ return parts.map(p=>p.t).join(""); }
@@ -1239,9 +1299,9 @@ function showResult(result){
     g.textContent="目標クリア！　称号ゲット！";
   }else{
     if(result.mode==="questions"){
-      g.textContent=`目標 ${result.setup.goal}秒まで、あと ${Math.max(0,result.elapsed-result.setup.goal).toFixed(1)}秒！`;
+      g.textContent="";
     }else{
-      g.textContent=`目標 ${result.setup.goal}問まで、あと ${Math.max(0,result.setup.goal-result.readCount)}問！`;
+      g.textContent="";
     }
   }
 
