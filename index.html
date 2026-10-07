@@ -509,6 +509,7 @@
             <button type="button" class="pill" data-level="4">レベル4<br><span style="font-size:12px">4文字まで</span></button>
             <button type="button" class="pill" data-level="5">レベル5<br><span style="font-size:12px">5文字まで</span></button>
           </div>
+          <p class="setup-note" id="kanaPoolCount" style="margin-top:8px;font-weight:700"></p>
           <p class="setup-note" id="levelHelp" style="margin-top:8px">レベル3：3文字のことばを中心に、3文字までのことばが出ます。</p>
         </div>
 
@@ -803,6 +804,19 @@ function renderCsvPreview(){
   pv.innerHTML="<table><tr><th>問題</th><th>読み</th></tr>"+customCsvQuestions.slice(0,8).map(x=>`<tr><td>${escapeHtml(x.text)}</td><td>${escapeHtml(x.reading)}</td></tr>`).join("")+"</table>";
   pv.classList.remove("hidden");
 }
+function updateKanaPoolCount(){
+  const label=$("#kanaPoolCount");
+  if(!label) return;
+  const cats=categoryOrder.filter(k=>!isKanjiCategoryGlobal(k)).filter(k=>$("#cat_"+k)?.checked);
+  const words=new Set();
+  for(const k of cats){
+    for(const word of DATA[k].items){
+      const n=charCount(word);
+      if((readingLevel===1?n===1:readingLevel===2?n===2:n>=2&&n<=readingLevel)) words.add(word);
+    }
+  }
+  label.textContent=`この設定で出せる問題：${words.size}種類（同じ問題はくり返しません）`;
+}
 function buildSetup(){
   const grid=$("#categoryGrid");
   const kanaCategories=categoryOrder.filter(k=>!isKanjiCategoryGlobal(k));
@@ -862,6 +876,7 @@ function buildSetup(){
     readingLevel=Number(btn.dataset.level);
     [...$("#levelOptions").children].forEach(x=>x.classList.toggle("selected",x===btn));
     updateLevelHelp();
+    updateKanaPoolCount();
   };
   updateLevelHelp();
 
@@ -873,7 +888,7 @@ function buildSetup(){
     updateTypePanels();
   };
 
-  $("#categoryGrid").addEventListener("change",()=>{});
+  $("#categoryGrid").addEventListener("change",updateKanaPoolCount);
 
   $("#kanjiGradeOptions").onclick=e=>{
     const btn=e.target.closest("button[data-kanji]");
@@ -964,38 +979,25 @@ function charCount(str){
   return Array.from(str).length;
 }
 function createPool(cats){
-  let p=[];
-
+  const p=[];
+  const seen=new Set();
   cats.forEach(k=>{
     if(isKanjiCategoryGlobal(k)){
-      const bank=KANJI_PROBLEM_BANK[k] || [];
-      bank.forEach(entry=>{
-        p.push({
-          text:entry.text,
-          reading:entry.reading,
-          source:entry.source,
-          cat:k
-        });
+      (KANJI_PROBLEM_BANK[k]||[]).forEach(entry=>{
+        if(seen.has(entry.text)) return;
+        seen.add(entry.text);
+        p.push({text:entry.text,reading:entry.reading,source:entry.source,cat:k});
       });
       return;
     }
-
     DATA[k].items.forEach(item=>{
       const len=charCount(item);
-      let ok=false;
-
-      if(readingLevel===1){
-        ok = len===1;
-      }else if(readingLevel===2){
-        ok = len===2;
-      }else{
-        ok = len>=2 && len<=readingLevel;
-      }
-
-      if(ok) p.push({text:item,cat:k});
+      const ok=readingLevel===1 ? len===1 : readingLevel===2 ? len===2 : len>=2 && len<=readingLevel;
+      if(!ok || seen.has(item)) return;
+      seen.add(item);
+      p.push({text:item,cat:k});
     });
   });
-
   return p;
 }
 function makeSequence(p, needed){
@@ -1019,34 +1021,19 @@ function takeWithoutRepeat(poolList,count){
   }
   return out;
 }
-function buildWeightedSequence(p, needed){
-  if(readingLevel===1){
-    const one=p.filter(x=>charCount(x.text)===1);
-    return takeWithoutRepeat(one.length?one:p,needed);
-  }
-
-  if(readingLevel===2){
-    const two=p.filter(x=>charCount(x.text)===2);
-    return takeWithoutRepeat(two.length?two:p,needed);
-  }
-
-  const exact=p.filter(x=>charCount(x.text)===readingLevel);
-  const shorter=p.filter(x=>{
-    const n=charCount(x.text);
-    return n>=2 && n<readingLevel;
-  });
-
-  if(!exact.length) return takeWithoutRepeat(p,needed);
-
-  const exactCount=Math.ceil(needed*0.8);
-  const shortCount=needed-exactCount;
-
-  return shuffle([
-    ...takeWithoutRepeat(exact,exactCount),
-    ...(shorter.length
-      ? takeWithoutRepeat(shorter,shortCount)
-      : takeWithoutRepeat(exact,shortCount))
-  ]);
+function buildWeightedSequence(p,needed){
+  // 語は1度だけ。全候補を使い切るまでは絶対に重複させない。
+  const unique=[...new Map(p.map(x=>[x.text,x])).values()];
+  if(readingLevel<=2 || needed>=unique.length) return shuffle(unique);
+  const exact=shuffle(unique.filter(x=>charCount(x.text)===readingLevel));
+  const shorter=shuffle(unique.filter(x=>charCount(x.text)<readingLevel));
+  const ideal=Math.ceil(needed*0.8);
+  // 80%ルールより重複防止を優先。足りない場合は別の文字数で補う。
+  const exactCount=Math.min(exact.length,Math.max(0,needed-Math.min(shorter.length,needed-ideal)));
+  let chosen=exact.slice(0,exactCount);
+  chosen.push(...shorter.slice(0,needed-chosen.length));
+  if(chosen.length<needed) chosen.push(...exact.slice(exactCount,exactCount+needed-chosen.length));
+  return shuffle(chosen);
 }
 function isKanjiChar(ch){
   return /^[一-龯々〆ヵヶ]$/.test(ch);
@@ -1187,7 +1174,11 @@ function startFromSetup(){
     alert("この設定では出せる問題がありません。レベルや読むものを変更してください。");
     return;
   }
-  const needed = gameMode==="questions" ? gameQuestionTarget : Math.max(200,pool.length*3);
+  const needed = gameMode==="questions" ? gameQuestionTarget : pool.length;
+  if(gameMode==="questions" && pool.length<needed){
+    alert(`この設定では${pool.length}種類です。重複せずに${needed}問出すには、文字種やレベルを変更してください。`);
+    return;
+  }
   sequence = (readingMode==="sentence" || readingType==="kanji" || readingType==="csv") ? takeWithoutRepeat(pool,needed) : buildWeightedSequence(pool,needed);
 
   currentIndex=0; readCount=0; skipped=0; ended=false;
@@ -1273,7 +1264,9 @@ function renderCard(){
       endGame();
       return;
     }
-    sequence.push(...shuffle(pool));
+    // 制限時間内でも一度出した問題を再出題しない。
+    endGame();
+    return;
   }
   const card=sequence[currentIndex];
   const flash=$("#flashText");
@@ -1503,6 +1496,7 @@ function restoreSetup(setup){
   [...$("#questionOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===questionTarget));
   [...$("#timeOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.value)===timeTarget));
   [...$("#levelOptions").children].forEach(b=>b.classList.toggle("selected",Number(b.dataset.level)===readingLevel));
+  updateKanaPoolCount();
 
   $("#levelHelp").textContent = readingLevel===1
     ? "レベル1：1文字だけを出します。"
@@ -1522,6 +1516,7 @@ function retry(){
 
 buildSetup();
 updateTypePanels();
+updateKanaPoolCount();
 showScreen("setupScreen");
 
 $("#startBtn").onclick=startFromSetup;
